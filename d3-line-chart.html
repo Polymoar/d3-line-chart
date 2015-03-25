@@ -7,14 +7,16 @@
 <!--
 Polymer element for line charts based on D3.js library.
 
-##### Roadmap for next releases:
-  - axes labels
+#### Roadmap for next releases:
+  - axis labels
+  - title
+  - ticks control & formatting
   - finish documentation
   - fix helper functions
-  - dive into scale variants and secure non-existing ones
+  - scale config and guard
   - hover series details
 
-##### Example
+#### Example
     <d3-line-chart metadata="{{ series }}" data="{{ records }}" flex></d3-line-chart>
 
 @element d3-line-chart
@@ -39,11 +41,11 @@ Polymer element for line charts based on D3.js library.
   </template>
   <script>
     (function(){
-      //TODO: opisy osi, poprawa funkcji pomocniczych, optymalizacja, skale? (pow etc), hover?, KOMENTARZE, opis parametrów
+      //TODO: scale as object for config
       Polymer({
         publish: {
           /**
-           * `metadata`
+           * TODO: please look into demo source
            *
            * @attribute metadata
            * @type Array
@@ -51,7 +53,7 @@ Polymer element for line charts based on D3.js library.
            */
           metadata: null,
           /**
-           * `axes`
+           * TODO: please look into demo source
            *
            * @attribute axes
            * @type Array
@@ -59,7 +61,7 @@ Polymer element for line charts based on D3.js library.
            */
           axes: null,
           /**
-           * `data`
+           * TODO: please look into demo source
            *
            * @attribute data
            * @type Array
@@ -68,20 +70,20 @@ Polymer element for line charts based on D3.js library.
           data: null,
           /**
            * Line interpolation mode for whole chart.
-           * Possible values:
-           *  - linear - piecewise linear segments, as in a polyline.
-           *  - linear-closed - close the linear segments to form a polygon.
-           *  - step - alternate between horizontal and vertical segments, as in a step function.
-           *  - step-before - alternate between vertical and horizontal segments, as in a step function.
-           *  - step-after - alternate between horizontal and vertical segments, as in a step function.
-           *  - basis - a B-spline, with control point duplication on the ends.
-           *  - basis-open - an open B-spline; may not intersect the start or end.
-           *  - basis-closed - a closed B-spline, as in a loop.
-           *  - bundle - equivalent to basis, except the tension parameter is used to straighten the spline.
-           *  - cardinal - a Cardinal spline, with control point duplication on the ends.
-           *  - cardinal-open - an open Cardinal spline; may not intersect the start or end, but will intersect other control points.
-           *  - cardinal-closed - a closed Cardinal spline, as in a loop.
-           *  - monotone - cubic interpolation that preserves monotonicity in y.
+           * #### Possible values:
+           *  - `linear` - piecewise linear segments, as in a polyline.
+           *  - `linear-closed` - close the linear segments to form a polygon.
+           *  - `step` - alternate between horizontal and vertical segments, as in a step function.
+           *  - `step-before` - alternate between vertical and horizontal segments, as in a step function.
+           *  - `step-after` - alternate between horizontal and vertical segments, as in a step function.
+           *  - `basis` - a B-spline, with control point duplication on the ends.
+           *  - `basis-open` - an open B-spline; may not intersect the start or end.
+           *  - `basis-closed` - a closed B-spline, as in a loop.
+           *  - `bundle` - equivalent to basis, except the tension parameter is used to straighten the spline.
+           *  - `cardinal` - a Cardinal spline, with control point duplication on the ends.
+           *  - `cardinal-open` - an open Cardinal spline; may not intersect the start or end, but will intersect other control points.
+           *  - `cardinal-closed` - a closed Cardinal spline, as in a loop.
+           *  - `monotone` - cubic interpolation that preserves monotonicity in y.
            *
            * @attribute interpolation
            * @type String
@@ -89,7 +91,14 @@ Polymer element for line charts based on D3.js library.
            */
           interpolation: 'linear',
           /**
-           * `scale`
+           * Scale mode for x axis.
+           * #### Possible values:
+           *  - `linear` - no scale transformation
+           *  - `time` - prepared for date / time / datetime values (automatically finds desired tick format)
+           *  - `sqrt` - power transform with expotent 0.5
+           *  - `log` - logarithmic transform with base 10 (requires x !== 0)
+           *
+           *  scale configuration and more scales on the way
            *
            * @attribute scale
            * @type String
@@ -97,7 +106,7 @@ Polymer element for line charts based on D3.js library.
            */
           scale: 'linear',
           /**
-           * `exact`
+           * The `exact` attribute if set disables broadening chart y axes range which is applied for better display of data series close to range extremes.
            *
            * @attribute exact
            * @type boolean
@@ -108,13 +117,18 @@ Polymer element for line charts based on D3.js library.
             reflect: true
           },
           /**
-           * `margin`
+           * Object with settings for default chart margins override.
+           * #### Properties:
+           *  - `top` default: 20
+           *  - `right` default: 50
+           *  - `bottom` default: 25
+           *  - `left` default: 50
            *
            * @attribute margin
            * @type Object
-           * @default {}
+           * @default null
            */
-          margin: {}
+          margin: null
         },
         observe: {
           metadata: 'prepare',
@@ -140,7 +154,6 @@ Polymer element for line charts based on D3.js library.
          * (this method is called automatically on relevant attribute changes)
          *
          * @method prepare
-         * @param none
          * @return {boolean} Returns true if succeeded, otherwise false.
          */
         prepare: function(){
@@ -190,7 +203,7 @@ Polymer element for line charts based on D3.js library.
               var line = d3.svg.line();
               line.interpolate(axis.interpolation || me.interpolation || 'linear');
               line.x(function(d){
-                return xScale((dataset.x) ? dataset.x(d) : (d[0]) ? d[0] : me.data.indexOf(d));
+                return xScale((dataset.x) ? dataset.x(d) : (d[0]) ? d[0] : me.data.indexOf(d) + 1);
               });
               line.y(function(d){
                 return axis._scale((dataset.y) ? dataset.y(d) : d[1]);
@@ -284,7 +297,7 @@ Polymer element for line charts based on D3.js library.
               return d3[fun](me.data.map(dataset.x));
             }else{
               return d3[fun](me.data.map(function(record){
-                return (record[0]) ? record[0] : me.data.indexOf(record);
+                return (record[0]) ? record[0] : me.data.indexOf(record) + 1; //TODO: helper for getting x, y more than one place this happens
               }));
             }
           }));
