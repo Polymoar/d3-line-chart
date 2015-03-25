@@ -1,0 +1,222 @@
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../core-icons/core-icons.html">
+<link rel="import" href="../core-icon/core-icon.html">
+<!-- imports -->
+<link rel="import" href="../lib-d3/lib-d3.html">
+
+<!-- element -->
+<polymer-element name="d3-line-chart" attributes="metadata data margin axes range" layout vertical>
+  <template>
+    <link rel="stylesheet" href="d3-line-chart.css">
+    <div id="chart" flex>
+      <svg id="paper"></svg>
+    </div>
+    <div id="legend">
+      <template repeat="{{dataset in metadata}}">
+        <div class="entry">
+          <core-icon icon="label"></core-icon>
+          <span>{{dataset.label}}</span>
+        </div>
+      </template>
+    </div>
+  </template>
+  <script>
+    (function(){
+      //TODO: opisy osi, poprawa funkcji pomocniczych, optymalizacja, skale? (pow etc), hover?, KOMENTARZE, opis parametrów
+      Polymer({
+        publish: {
+          interpolation: 'linear',
+          scale: 'linear',
+          exact: {
+            value: false,
+            reflect: true
+          }
+        },
+        observe: {
+          metadata: 'prepare',
+          scale: 'prepare',
+          interpolation: 'prepare',
+          margin: 'prepare',
+          axes: 'prepare',
+          data: 'redraw',
+          range: 'redraw',
+          exact: 'redraw'
+        },
+        domReady: function(){
+          if(!this.axes){ //if axes not defined create default
+            this.axes = [{
+              scale: 'linear',
+              name: 'default'
+            }];
+          }
+          this.prepare();
+        },
+        prepare: function(){
+          var me = this;
+          //if layout not finished yet delay preparation of chart
+          if(!me.offsetWidth || !me.offsetHeight){
+            return me.delay();
+          }
+
+          var svg = d3.select(me.$.paper),
+            margin = { top: 20, right: 50, bottom: 25, left: 50},
+            lines = [];
+
+          if(me.margin){ //if user margin defined override defaults
+            for(var key in me.margin){
+              margin[key] = me.margin[key];
+            }
+          }
+
+          //clear svg and update size to match component
+          svg.selectAll('*').remove();
+          svg.attr('width', me.$.chart.offsetWidth);
+          svg.attr('height', me.$.chart.offsetHeight);
+
+          //calculate size of chart draw area
+          var width = me.$.chart.offsetWidth - margin.left - margin.right,
+            height = me.$.chart.offsetHeight - margin.top - margin.bottom,
+          //define scale for x axis and y axes TODO: helper function for scale getting from string
+            xScale = ((me.scale === 'time') ? d3.time.scale() : d3.scale[me.scale]()).range([0, width]);
+          me.axes.forEach(function(axis){
+            axis.scale = axis.scale || 'linear';
+            axis._scale = ((axis.scale === 'time') ? d3.time.scale() : d3.scale[axis.scale]()).range([height, 0]);
+          });
+
+          me.metadata.forEach(function(dataset){
+            dataset.axis = dataset.axis || 'default';
+            var axis = me.axes.filter(function(axis){
+                return axis.name === dataset.axis;
+              })[0];
+
+            if(axis){
+              var line = d3.svg.line();
+              line.interpolate(axis.interpolation || me.interpolation || 'linear');
+              line.x(function(d){
+                return xScale((dataset.x) ? dataset.x(d) : (d[0]) ? d[0] : me.data.indexOf(d));
+              });
+              line.y(function(d){
+                return axis._scale((dataset.y) ? dataset.y(d) : d[1]);
+              });
+              lines.push(line);
+            }
+          });
+
+          var xAxis = d3.svg.axis().scale(xScale).orient("bottom");
+          me.axes.forEach(function(axis, key){
+            axis._axis = d3.svg.axis().scale(axis._scale).orient((key === 0) ? 'left' : 'right');
+          });
+
+          var focus = svg.append("g").attr("class", "focus").attr("transform", "translate(" + margin.left + "," + margin.top + ")"),
+            axes = svg.append("g").attr("class", "axes").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+          axes.append("g").attr("class", "x axis").attr("transform", "translate(0," + height + ")").call(xAxis);
+          me.axes.forEach(function(axis, key){
+            if(key < 2){
+              var _axis = axes.append("g").attr("class", "y axis " + axis.name);
+              if(key === 1){
+                _axis.attr("transform", "translate(" + width + " ,0)");
+              }
+              _axis.call(axis._axis);
+            }
+          });
+
+          lines.forEach(function(line, i){
+            focus.append("path").attr("class", "line l" + i);
+          });
+
+          svg.append("defs").append("clipPath")
+            .attr("id", "clip")
+            .append("rect")
+            .attr("width", width)
+            //height & translate manipulation for proper exact display
+            .attr("height", height + 4)
+            .attr("transform", "translate(0 ,-2)");
+
+          me.redraw = function(){
+            if(me.data){ //if there is anything to show
+              //setting domains
+              if(me.range){ //if user defined specific range
+                xScale.domain(me.range);
+              }else{
+                //find x range for all data
+                xScale.domain([me.d3x('min'), me.d3x('max')]);
+              }
+              me.axes.forEach(function(axis){
+                if(axis.range && axis.range.length === 2){ //if axis has predefined range
+                  axis._scale.domain(axis.range);
+                }else{
+                  //find y range for all data in axis
+                  var min = me.d3y('min', axis.name),
+                    max = me.d3y('max', axis.name),
+                    epsilon = (!me.exact) ? (max - min) * 0.02 : 0; //if allowed broaden range for nicer looks
+                  axis._scale.domain([min - epsilon, max + epsilon]);
+                }
+
+              });
+              //update axes
+              axes.select(".x.axis").transition().call(xAxis);
+              me.axes.forEach(function(axis){
+                axes.select(".y.axis." + axis.name).transition().call(axis._axis);
+              });
+              //update lines
+              lines.forEach(function(line, i){
+                focus.select(".line.l" + i).datum(me.data).transition().attr("d", line);
+              });
+            }
+          };
+          //do first redraw
+          me.redraw();
+        },
+        redraw: function(){
+          //placeholder
+        },
+        //helpers
+        d3x: function(fun){ //do fun for all x values
+          var me = this;
+          return d3[fun](me.metadata.map(function(dataset){
+            if(dataset.x){
+              return d3[fun](me.data.map(dataset.x));
+            }else{
+              return d3[fun](me.data.map(function(record){
+                return (record[0]) ? record[0] : me.data.indexOf(record);
+              }));
+            }
+          }));
+        },
+        d3y: function(fun, axisName){ //do fun for all y values from selected axis
+          var me = this,
+            datasets = me.metadata.filter(function(dataset){
+              return dataset.axis === axisName;
+            });
+          return d3[fun](datasets.map(function(dataset){
+            if(dataset.y){
+              return d3[fun](me.data.map(dataset.y));
+            }else{
+              return d3[fun](me.data.map(function(record){
+                return record[1];
+              }));
+            }
+          }));
+        },
+        //delay for layout
+        delay: function(count){
+          var me = this;
+          count = count || 0;
+          if(count < 5){
+            if(!me.offsetWidth || !me.offsetHeight){
+              if(me.timeout){
+                clearTimeout(me.timeout);
+              }
+              me.timeout = setTimeout(function(){
+                me.delay(count + 1);
+              }, 500);
+            }else{
+              me.prepare();
+            }
+          }
+        }
+      });
+    })();
+  </script>
+</polymer-element>
