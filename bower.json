@@ -22,8 +22,12 @@
     "tests"
   ],
   "dependencies": {
-    "polymer": "~0.5.5",
+    "polymer": "Polymer/polymer#~0.5.5",
     "core-icons": "Polymer/core-icons#~0.5.5",
-    "core-icon": "Polymer/core-icon#~0.5.5"
+    "core-icon": "Polymer/core-icon#~0.5.5",
+    "lib-d3": "Polymoar/lib-d3#~3.5.5"
+  },
+  "devDependencies": {
+    "web-component-tester": "*"
   }
 }
