@@ -8,6 +8,7 @@
   "description": "Polymer component for line charts based on D3.js library",
   "main": "d3-line-chart.html",
   "keywords": [
+    "web-components",
     "polymer",
     "line",
     "chart",
