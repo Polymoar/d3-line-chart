@@ -4,7 +4,24 @@
 <!-- imports -->
 <link rel="import" href="../lib-d3/lib-d3.html">
 
-<!-- element -->
+<!--
+Polymer element for line charts based on D3.js library.
+
+##### Roadmap for next releases:
+  - axes labels
+  - finish documentation
+  - fix helper functions
+  - dive into scale variants and secure non-existing ones
+  - hover series details
+
+##### Example
+    <d3-line-chart metadata="{{ series }}" data="{{ records }}" flex></d3-line-chart>
+
+@element d3-line-chart
+@blurb Polymer element for line charts based on D3.js library.
+@status alpha
+@homepage https://github.com/Polymoar/d3-line-chart
+-->
 <polymer-element name="d3-line-chart" attributes="metadata data margin axes range" layout vertical>
   <template>
     <link rel="stylesheet" href="d3-line-chart.css">
@@ -25,12 +42,65 @@
       //TODO: opisy osi, poprawa funkcji pomocniczych, optymalizacja, skale? (pow etc), hover?, KOMENTARZE, opis parametrów
       Polymer({
         publish: {
+          /**
+           * `metadata`
+           *
+           * @attribute metadata
+           * @type Array
+           * @default null
+           */
+          metadata: null,
+          /**
+           * `axes`
+           *
+           * @attribute axes
+           * @type Array
+           * @default null
+           */
+          axes: null,
+          /**
+           * `data`
+           *
+           * @attribute data
+           * @type Array
+           * @default null
+           */
+          data: null,
+          /**
+           * `interpolation`
+           *
+           * @attribute interpolation
+           * @type String
+           * @default 'linear'
+           */
           interpolation: 'linear',
+          /**
+           * `scale`
+           *
+           * @attribute scale
+           * @type String
+           * @default 'linear'
+           */
           scale: 'linear',
+          /**
+           * `exact`
+           *
+           * @attribute exact
+           * @type boolean
+           * @default false
+           */
           exact: {
             value: false,
             reflect: true
-          }
+          },
+          /**
+           * `margin`
+           *
+           * @attribute margin
+           * @type Object
+           * @default {}
+           */
+          margin: {}
         },
         observe: {
           metadata: 'prepare',
@@ -51,11 +121,24 @@
           }
           this.prepare();
         },
+        /**
+         * The `prepare` method recreates chart with updated configuration attributes & size
+         * (this method is called automatically on relevant attribute changes)
+         *
+         * @method prepare
+         * @param none
+         * @return {boolean} Returns true if succeeded, otherwise false.
+         */
         prepare: function(){
           var me = this;
+          //if no data present abandon preparation
+          if(!me.metadata || !me.data){
+            return false;
+          }
           //if layout not finished yet delay preparation of chart
           if(!me.offsetWidth || !me.offsetHeight){
-            return me.delay();
+            me.delay();
+            return false;
           }
 
           var svg = d3.select(me.$.paper),
@@ -167,7 +250,15 @@
           };
           //do first redraw
           me.redraw();
+          //return success
+          return true;
         },
+        /**
+         * The `redraw` method redraws chart with current data
+         * (this method is called automatically on relevant attribute changes)
+         *
+         * @method redraw
+         */
         redraw: function(){
           //placeholder
         },
