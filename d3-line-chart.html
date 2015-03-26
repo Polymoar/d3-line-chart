@@ -15,6 +15,7 @@ Polymer element for line charts based on D3.js library.
   - fix helper functions
   - scale config and guard
   - hover series details
+  - area support
 
 #### Example
     <d3-line-chart metadata="{{ series }}" data="{{ records }}" flex></d3-line-chart>
@@ -142,10 +143,10 @@ Polymer element for line charts based on D3.js library.
         },
         domReady: function(){
           if(!this.axes){ //if axes not defined create default
-            this.axes = [{
-              scale: 'linear',
-              name: 'default'
-            }];
+            this.axes = [
+              { name: 'xAxis' },
+              { name: 'yAxis' }
+            ];
           }
           this.prepare();
         },
@@ -168,17 +169,16 @@ Polymer element for line charts based on D3.js library.
             return false;
           }
 
-          var svg = d3.select(me.$.paper),
-            margin = { top: 20, right: 50, bottom: 25, left: 50},
-            lines = [];
-
-          if(me.margin){ //if user margin defined override defaults
+          //create margin configuration and override if necessary
+          var margin = { top: 20, right: 50, bottom: 25, left: 50}
+          if(me.margin){
             for(var key in me.margin){
               margin[key] = me.margin[key];
             }
           }
 
           //clear svg and update size to match component
+          var svg = d3.select(me.$.paper);
           svg.selectAll('*').remove();
           svg.attr('width', me.$.chart.offsetWidth);
           svg.attr('height', me.$.chart.offsetHeight);
@@ -186,24 +186,31 @@ Polymer element for line charts based on D3.js library.
           //calculate size of chart draw area
           var width = me.$.chart.offsetWidth - margin.left - margin.right,
             height = me.$.chart.offsetHeight - margin.top - margin.bottom,
-          //define scale for x axis and y axes TODO: helper function for scale getting from string
-            xScale = ((me.scale === 'time') ? d3.time.scale() : d3.scale[me.scale]()).range([0, width]);
-          me.axes.forEach(function(axis){
-            axis.scale = axis.scale || 'linear';
-            axis._scale = ((axis.scale === 'time') ? d3.time.scale() : d3.scale[axis.scale]()).range([height, 0]);
+            xAxis = me.axes[0];
+
+          //define scale for x axis and y axes
+          me.axes.forEach(function(axis, i){
+            axis.scale = axis.scale || me.scale || 'linear';
+            //TODO: config for scales
+            axis._scale = ((axis.scale === 'time') ? d3.time.scale() : d3.scale[axis.scale]()).range((i > 0) ? [height, 0] : [0, width]);
           });
 
+          //create focus objects configurations
+          var lines = [],
+            areas = [];
           me.metadata.forEach(function(dataset){
-            dataset.axis = dataset.axis || 'default';
+            dataset.axis = dataset.axis || 'yAxis';
+            dataset.type = dataset.type || 'line';
             var axis = me.axes.filter(function(axis){
                 return axis.name === dataset.axis;
               })[0];
 
             if(axis){
+              //TODO: finish area support
               var line = d3.svg.line();
               line.interpolate(axis.interpolation || me.interpolation || 'linear');
               line.x(function(d){
-                return xScale((dataset.x) ? dataset.x(d) : (d[0]) ? d[0] : me.data.indexOf(d) + 1);
+                return xAxis._scale((dataset.x) ? dataset.x(d) : (d[0]) ? d[0] : me.data.indexOf(d) + 1);
               });
               line.y(function(d){
                 return axis._scale((dataset.y) ? dataset.y(d) : d[1]);
@@ -212,29 +219,44 @@ Polymer element for line charts based on D3.js library.
             }
           });
 
-          var xAxis = d3.svg.axis().scale(xScale).orient("bottom");
+          //settle axes orientation
+          var axisOrientation,
+            orientation = [
+              'bottom',
+              'left',
+              'right'
+            ];
           me.axes.forEach(function(axis, key){
-            axis._axis = d3.svg.axis().scale(axis._scale).orient((key === 0) ? 'left' : 'right');
-          });
-
-          var focus = svg.append("g").attr("class", "focus").attr("transform", "translate(" + margin.left + "," + margin.top + ")"),
-            axes = svg.append("g").attr("class", "axes").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-
-          axes.append("g").attr("class", "x axis").attr("transform", "translate(0," + height + ")").call(xAxis);
-          me.axes.forEach(function(axis, key){
-            if(key < 2){
-              var _axis = axes.append("g").attr("class", "y axis " + axis.name);
-              if(key === 1){
-                _axis.attr("transform", "translate(" + width + " ,0)");
-              }
-              _axis.call(axis._axis);
+            axisOrientation = orientation[key];
+            if(axisOrientation){
+              axis._axis = d3.svg.axis().scale(axis._scale).orient(axisOrientation);
             }
           });
 
+          //create svg groups
+          var focus = svg.append("g").attr("class", "focus").attr("transform", "translate(" + margin.left + "," + margin.top + ")"),
+            axes = svg.append("g").attr("class", "axes").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+          //append axes to svg
+          me.axes.forEach(function(axis, key){
+            var _axis = axes.append("g");
+            if(key === 0){
+              _axis.attr("class", "x axis").attr("transform", "translate(0," + height + ")");
+            }else if(key < 3){
+              _axis.attr("class", "y axis " + axis.name);
+              if(key === 2){
+                _axis.attr("transform", "translate(" + width + " ,0)");
+              }
+            }
+            _axis.call(axis._axis);
+          });
+
+          //append lines to svg
           lines.forEach(function(line, i){
             focus.append("path").attr("class", "line l" + i);
           });
 
+          //append clipping path to svg
           svg.append("defs").append("clipPath")
             .attr("id", "clip")
             .append("rect")
@@ -243,29 +265,32 @@ Polymer element for line charts based on D3.js library.
             .attr("height", height + 4)
             .attr("transform", "translate(0 ,-2)");
 
+          //create redraw function
           me.redraw = function(){
             if(me.data){ //if there is anything to show
               //setting domains
-              if(me.range){ //if user defined specific range
-                xScale.domain(me.range);
-              }else{
-                //find x range for all data
-                xScale.domain([me.d3x('min'), me.d3x('max')]);
-              }
-              me.axes.forEach(function(axis){
-                if(axis.range && axis.range.length === 2){ //if axis has predefined range
-                  axis._scale.domain(axis.range);
+              me.axes.forEach(function(axis, key){
+                if(key > 0){
+                  if(axis.range && axis.range.length === 2){ //if axis has predefined range
+                    axis._scale.domain(axis.range);
+                  }else{
+                    //find y range for all data in axis
+                    var min = me.d3y('min', axis.name),
+                      max = me.d3y('max', axis.name),
+                      epsilon = (!me.exact) ? (max - min) * 0.02 : 0; //if allowed broaden range for nicer looks
+                    axis._scale.domain([min - epsilon, max + epsilon]);
+                  }
                 }else{
-                  //find y range for all data in axis
-                  var min = me.d3y('min', axis.name),
-                    max = me.d3y('max', axis.name),
-                    epsilon = (!me.exact) ? (max - min) * 0.02 : 0; //if allowed broaden range for nicer looks
-                  axis._scale.domain([min - epsilon, max + epsilon]);
+                  if(me.range){ //if user defined specific range
+                    axis._scale.domain(me.range);
+                  }else{
+                    //find x range for all data
+                    axis._scale.domain([me.d3x('min'), me.d3x('max')]);
+                  }
                 }
-
               });
               //update axes
-              axes.select(".x.axis").transition().call(xAxis);
+              axes.select(".x.axis").transition().call(xAxis._axis);
               me.axes.forEach(function(axis){
                 axes.select(".y.axis." + axis.name).transition().call(axis._axis);
               });
