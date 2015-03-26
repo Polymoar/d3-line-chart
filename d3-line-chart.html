@@ -196,18 +196,16 @@ Polymer element for line charts based on D3.js library.
           });
 
           //create focus objects configurations
-          var lines = [],
-            areas = [];
+          var lines = [], axis, line;
           me.metadata.forEach(function(dataset){
             dataset.axis = dataset.axis || 'yAxis';
             dataset.type = dataset.type || 'line';
-            var axis = me.axes.filter(function(axis){
+            axis = me.axes.filter(function(axis){
                 return axis.name === dataset.axis;
               })[0];
 
             if(axis){
-              //TODO: finish area support
-              var line = d3.svg.line();
+              line = d3.svg.line();
               line.interpolate(axis.interpolation || me.interpolation || 'linear');
               line.x(function(d){
                 return xAxis._scale((dataset.x) ? dataset.x(d) : (d[0]) ? d[0] : me.data.indexOf(d) + 1);
@@ -238,8 +236,9 @@ Polymer element for line charts based on D3.js library.
             axes = svg.append("g").attr("class", "axes").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
           //append axes to svg
+          var _axis;
           me.axes.forEach(function(axis, key){
-            var _axis = axes.append("g");
+            _axis = axes.append("g");
             if(key === 0){
               _axis.attr("class", "x axis").attr("transform", "translate(0," + height + ")");
             }else if(key < 3){
@@ -268,16 +267,18 @@ Polymer element for line charts based on D3.js library.
           //create redraw function
           me.redraw = function(){
             if(me.data){ //if there is anything to show
+
               //setting domains
+              var min, max, epsilon;
               me.axes.forEach(function(axis, key){
                 if(key > 0){
                   if(axis.range && axis.range.length === 2){ //if axis has predefined range
                     axis._scale.domain(axis.range);
                   }else{
                     //find y range for all data in axis
-                    var min = me.d3y('min', axis.name),
-                      max = me.d3y('max', axis.name),
-                      epsilon = (!me.exact) ? (max - min) * 0.02 : 0; //if allowed broaden range for nicer looks
+                    min = me.d3y('min', axis.name)
+                    max = me.d3y('max', axis.name)
+                    epsilon = (!me.exact) ? (max - min) * 0.02 : 0; //if allowed broaden range for nicer looks
                     axis._scale.domain([min - epsilon, max + epsilon]);
                   }
                 }else{
@@ -289,19 +290,23 @@ Polymer element for line charts based on D3.js library.
                   }
                 }
               });
+
               //update axes
               axes.select(".x.axis").transition().call(xAxis._axis);
               me.axes.forEach(function(axis){
                 axes.select(".y.axis." + axis.name).transition().call(axis._axis);
               });
+
               //update lines
               lines.forEach(function(line, i){
                 focus.select(".line.l" + i).datum(me.data).transition().attr("d", line);
               });
             }
           };
+
           //do first redraw
           me.redraw();
+
           //return success
           return true;
         },
