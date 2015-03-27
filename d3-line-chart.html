@@ -1,60 +1,95 @@
+<!-- imports -->
 <link rel="import" href="../polymer/polymer.html">
 <link rel="import" href="../core-icons/core-icons.html">
 <link rel="import" href="../core-icon/core-icon.html">
-<!-- imports -->
 <link rel="import" href="../lib-d3/lib-d3.html">
+<link rel="import" href="../px10-node-resize-detector/px10-element-resize-detector.html">
 
 <!--
-Polymer element for line charts based on D3.js library.
+Responsive and configurable Polymer element for line charts based on D3.js library.
 
 #### Roadmap for next releases:
-  - axis labels
-  - title
-  - ticks control & formatting
-  - finish documentation
-  - fix helper functions
-  - scale config and guard
+  - scale detailed configuration
+  - ticks configuration
   - hover series details
-  - area support
+  - d3-chart element with other types configurable for series
 
 #### Example
-    <d3-line-chart metadata="{{ series }}" data="{{ records }}" flex></d3-line-chart>
+    <d3-line-chart metadata="{{ seriesConfiguration }}" data="{{ records }}" flex></d3-line-chart>
+
+#### Styling
+  - chart html is ready for styling which shouldn't affect responsiveness
+  - please set chart's width & height by css or add it to layout (you can use flex attribute on it)
 
 @element d3-line-chart
-@blurb Polymer element for line charts based on D3.js library.
+@demo http://polymoar.github.io/components/d3-line-chart/demo.html
+@blurb Responsive and configurable Polymer element for line charts based on D3.js library.
 @status alpha
 @homepage https://github.com/Polymoar/d3-line-chart
 -->
-<polymer-element name="d3-line-chart" attributes="metadata data margin axes range" layout vertical>
+<polymer-element name="d3-line-chart">
   <template>
     <link rel="stylesheet" href="d3-line-chart.css">
-    <div id="chart" flex>
-      <svg id="paper"></svg>
-    </div>
-    <div id="legend">
-      <template repeat="{{dataset in metadata}}">
-        <div class="entry">
-          <core-icon icon="label"></core-icon>
-          <span>{{dataset.label}}</span>
-        </div>
+    <div id="container" fit layout vertical>
+      <template if="{{ name }}">
+        <div id="title">{{ name }}</div>
       </template>
+      <div flex layout vertical?="{{ vertical }}" horizontal?="{{ !vertical }}">
+        <div id="chart" flex>
+          <svg id="paper"></svg>
+          <template if="{{ responsive }}">
+            <px10-element-resize-detector target="{{ }}" on-resize="{{ prepare }}"></px10-element-resize-detector>
+          </template>
+        </div>
+        <template if="{{ !hideLegend }}">
+          <div id="legend" vertical?="{{ vertical }}">
+            <template repeat="{{ dataset in metadata }}">
+              <div class="entry">
+                <core-icon icon="label"></core-icon>
+                <span>{{ dataset.label }}</span>
+              </div>
+            </template>
+          </div>
+        </template>
+      </div>
     </div>
   </template>
   <script>
     (function(){
-      //TODO: scale as object for config
+      /* TODO:
+       * - scale as object for config
+       * - ticks control
+       * - configurable svg (line & axis colors and widths etc)
+       * - refactor labels display and similar (messy)
+       * - refactor helper functions
+       */
       Polymer({
+
+        //published attributes
         publish: {
           /**
-           * TODO: please look into demo source
+           * Chart title
            *
-           * @attribute metadata
-           * @type Array
+           * @attribute name
+           * @type String
            * @default null
            */
-          metadata: null,
+          name: null,
           /**
-           * TODO: please look into demo source
+           * Array containing axes configuration. Each axis configuration is an object as described below:
+           * ```
+           * [{
+           *    name: String (required)
+           *    label: String
+           *    scale: String - scale of axis, defaults to scale attribute value
+           *    interpolation: String - mode of line interpolation for axis, defaults to interpolation attribute value
+           * }, ...]
+           * ```
+           * If not set defaults to:
+           * ```
+           * [{ name: 'xAxis' }, { name: 'yAxis' }]
+           * ```
+           * Note that x axis configuration should be first object in array and chart can display at most 3 axes (x, y1, y2)
            *
            * @attribute axes
            * @type Array
@@ -62,7 +97,27 @@ Polymer element for line charts based on D3.js library.
            */
           axes: null,
           /**
-           * TODO: please look into demo source
+           * Array containing series configuration. Each series configuration is an object as described below:
+           * ```
+           * [{
+           *    label: String (recommended if hideLegend not set)
+           *    axis: String - name of axis the series belongs to, if not set defaults to 'yAxis' which exists only if you did not defined own axes
+           *    interpolation: String - mode of line interpolation for series, if not set defaults to axis interpolation mode
+           *    x: function(record) - function getting x from record, if not set gets record[0] or record index + 1
+           *    y: function(record) - function getting y from record, if not set gets record[1]
+           * }, ...]
+           * ```
+           * Note that first element of array is drawn with lowest 'z-index'
+           *
+           * @attribute metadata
+           * @type Array
+           * @default null
+           */
+          metadata: null,
+          /**
+           * Array of records in form of:
+           *  - Objects (requires usage of metadata.y and recommended metadata.x)
+           *  - Arrays (does not require x y getters but you can still use them for derivative series display)
            *
            * @attribute data
            * @type Array
@@ -70,7 +125,7 @@ Polymer element for line charts based on D3.js library.
            */
           data: null,
           /**
-           * Line interpolation mode for whole chart.
+           * Default line interpolation mode
            * #### Possible values:
            *  - `linear` - piecewise linear segments, as in a polyline.
            *  - `linear-closed` - close the linear segments to form a polygon.
@@ -92,20 +147,40 @@ Polymer element for line charts based on D3.js library.
            */
           interpolation: 'linear',
           /**
-           * Scale mode for x axis.
+           * Default scale mode for axes
            * #### Possible values:
            *  - `linear` - no scale transformation
            *  - `time` - prepared for date / time / datetime values (automatically finds desired tick format)
            *  - `sqrt` - power transform with expotent 0.5
            *  - `log` - logarithmic transform with base 10 (requires x !== 0)
            *
-           *  scale configuration and more scales on the way
-           *
            * @attribute scale
            * @type String
            * @default 'linear'
            */
           scale: 'linear',
+          /**
+           * The `responsive` attribute if set enables triggering chart size adjustment after resize.
+           *
+           * @attribute responsive
+           * @type boolean
+           * @default false
+           */
+          responsive: {
+            value: false,
+            reflect: true
+          },
+          /**
+           * The `vertical` attribute if set enables placing legend on the bottom of chart.
+           *
+           * @attribute vertical
+           * @type boolean
+           * @default false
+           */
+          vertical: {
+            value: false,
+            reflect: true
+          },
           /**
            * The `exact` attribute if set disables broadening chart y axes range which is applied for better display of data series close to range extremes.
            *
@@ -118,12 +193,23 @@ Polymer element for line charts based on D3.js library.
             reflect: true
           },
           /**
-           * Object with settings for default chart margins override.
+           * The `hideLegend` attribute if set disables legend display.
+           *
+           * @attribute legend
+           * @type boolean
+           * @default false
+           */
+          hideLegend: {
+            value: false,
+            reflect: true
+          },
+          /**
+           * Object with settings for default svg margins override
            * #### Properties:
-           *  - `top` default: 20
-           *  - `right` default: 50
-           *  - `bottom` default: 25
-           *  - `left` default: 50
+           *  - `top` - default 0
+           *  - `right` - default 60
+           *  - `bottom` - default 60
+           *  - `left` - default 60
            *
            * @attribute margin
            * @type Object
@@ -131,6 +217,8 @@ Polymer element for line charts based on D3.js library.
            */
           margin: null
         },
+
+        //watchers
         observe: {
           metadata: 'prepare',
           scale: 'prepare',
@@ -141,51 +229,50 @@ Polymer element for line charts based on D3.js library.
           range: 'redraw',
           exact: 'redraw'
         },
+
+        //initialization
         domReady: function(){
-          if(!this.axes){ //if axes not defined create default
-            this.axes = [
+          var me = this;
+          me.margin = { top: 0, right: 60, bottom: 60, left: 60};
+          if(!me.axes){ //if axes not defined create default
+            me.axes = [
               { name: 'xAxis' },
               { name: 'yAxis' }
             ];
           }
-          this.prepare();
+          me.prepare();
         },
+
         /**
-         * The `prepare` method recreates chart with updated configuration attributes & size
-         * (this method is called automatically on relevant attribute changes)
+         * The `prepare` method recreates chart with updated configuration attributes & size.
          *
          * @method prepare
          * @return {boolean} Returns true if succeeded, otherwise false.
          */
         prepare: function(){
-          var me = this;
+          var me = this,
+            bounds = me.$.chart.getBoundingClientRect();
+
           //if no data present abandon preparation
           if(!me.metadata || !me.data){
             return false;
           }
-          //if layout not finished yet delay preparation of chart
-          if(!me.offsetWidth || !me.offsetHeight){
-            me.delay();
-            return false;
-          }
 
-          //create margin configuration and override if necessary
-          var margin = { top: 20, right: 50, bottom: 25, left: 50}
-          if(me.margin){
-            for(var key in me.margin){
-              margin[key] = me.margin[key];
-            }
+          //if layout not finished yet delay preparation of chart
+          if(!bounds.width || !bounds.height){
+            return false;
           }
 
           //clear svg and update size to match component
           var svg = d3.select(me.$.paper);
           svg.selectAll('*').remove();
-          svg.attr('width', me.$.chart.offsetWidth);
-          svg.attr('height', me.$.chart.offsetHeight);
+          svg.attr('width', bounds.width);
+          svg.attr('height', bounds.height);
 
           //calculate size of chart draw area
-          var width = me.$.chart.offsetWidth - margin.left - margin.right,
-            height = me.$.chart.offsetHeight - margin.top - margin.bottom,
+          var margin = me.margin,
+            width = bounds.width - margin.left - margin.right,
+            height = bounds.height - margin.top - margin.bottom,
             xAxis = me.axes[0];
 
           //define scale for x axis and y axes
@@ -196,17 +283,17 @@ Polymer element for line charts based on D3.js library.
           });
 
           //create focus objects configurations
-          var lines = [], axis, line;
+          var lines = [], line;
           me.metadata.forEach(function(dataset){
             dataset.axis = dataset.axis || 'yAxis';
             dataset.type = dataset.type || 'line';
-            axis = me.axes.filter(function(axis){
+            var axis = me.axes.filter(function(axis){
                 return axis.name === dataset.axis;
               })[0];
 
             if(axis){
               line = d3.svg.line();
-              line.interpolate(axis.interpolation || me.interpolation || 'linear');
+              line.interpolate(dataset.interpolation || axis.interpolation || me.interpolation || 'linear');
               line.x(function(d){
                 return xAxis._scale((dataset.x) ? dataset.x(d) : (d[0]) ? d[0] : me.data.indexOf(d) + 1);
               });
@@ -233,18 +320,27 @@ Polymer element for line charts based on D3.js library.
 
           //create svg groups
           var focus = svg.append("g").attr("class", "focus").attr("transform", "translate(" + margin.left + "," + margin.top + ")"),
-            axes = svg.append("g").attr("class", "axes").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+            axes = svg.append("g").attr("class", "axes").attr("transform", "translate(" + margin.left + "," + margin.top + ")"),
+            labels = svg.append("g").attr("class", "labels");
 
-          //append axes to svg
+          //append axes and labels to svg
           var _axis;
           me.axes.forEach(function(axis, key){
             _axis = axes.append("g");
             if(key === 0){
               _axis.attr("class", "x axis").attr("transform", "translate(0," + height + ")");
+              if(axis.label){
+                labels.append("text").attr("y", margin.top + height + margin.bottom).attr("x", margin.left + (width / 2)).attr("dy", "-1em").style("text-anchor", "middle").text(axis.label);
+              }
             }else if(key < 3){
               _axis.attr("class", "y axis " + axis.name);
               if(key === 2){
                 _axis.attr("transform", "translate(" + width + " ,0)");
+                if(axis.label){
+                  labels.append("text").attr("transform", "rotate(-90)").attr("y", width + margin.right + margin.left).attr("x", 0 - (height/2)).attr("dy", "-1em").style("text-anchor", "middle").text(axis.label);
+                }
+              }else if(axis.label){
+                labels.append("text").attr("transform", "rotate(90)").attr("y", 0).attr("x", height/2).attr("dy", "-1em").style("text-anchor", "middle").text(axis.label);
               }
             }
             _axis.call(axis._axis);
@@ -276,8 +372,8 @@ Polymer element for line charts based on D3.js library.
                     axis._scale.domain(axis.range);
                   }else{
                     //find y range for all data in axis
-                    min = me.d3y('min', axis.name)
-                    max = me.d3y('max', axis.name)
+                    min = me.d3y('min', axis.name);
+                    max = me.d3y('max', axis.name);
                     epsilon = (!me.exact) ? (max - min) * 0.02 : 0; //if allowed broaden range for nicer looks
                     axis._scale.domain([min - epsilon, max + epsilon]);
                   }
@@ -310,6 +406,7 @@ Polymer element for line charts based on D3.js library.
           //return success
           return true;
         },
+
         /**
          * The `redraw` method redraws chart with current data
          * (this method is called automatically on relevant attribute changes)
@@ -319,6 +416,7 @@ Polymer element for line charts based on D3.js library.
         redraw: function(){
           //placeholder
         },
+
         //helpers
         d3x: function(fun){ //do fun for all x values
           var me = this;
@@ -346,23 +444,6 @@ Polymer element for line charts based on D3.js library.
               }));
             }
           }));
-        },
-        //delay for layout
-        delay: function(count){
-          var me = this;
-          count = count || 0;
-          if(count < 5){
-            if(!me.offsetWidth || !me.offsetHeight){
-              if(me.timeout){
-                clearTimeout(me.timeout);
-              }
-              me.timeout = setTimeout(function(){
-                me.delay(count + 1);
-              }, 500);
-            }else{
-              me.prepare();
-            }
-          }
         }
       });
     })();

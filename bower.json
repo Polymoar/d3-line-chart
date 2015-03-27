@@ -26,7 +26,8 @@
     "polymer": "Polymer/polymer#~0.5.5",
     "core-icons": "Polymer/core-icons#~0.5.5",
     "core-icon": "Polymer/core-icon#~0.5.5",
-    "lib-d3": "Polymoar/lib-d3#~3.5.5"
+    "lib-d3": "Polymoar/lib-d3#~3.5.5",
+    "px10-node-resize-detector": "PX10/px10-element-resize-detector#~0.0.1"
   },
   "devDependencies": {
     "web-component-tester": "*"

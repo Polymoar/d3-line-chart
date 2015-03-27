@@ -1,7 +1,21 @@
 $start_color: red;
 
-d3-line-chart {
+:host {
+  position: relative;
   overflow: hidden;
+  display: block;
+}
+
+#title {
+  padding: 10px;
+}
+
+#legend .entry {
+  padding: 5px;
+}
+
+#legend[vertical] .entry {
+  float: left;
 }
 
 svg {
@@ -9,36 +23,28 @@ svg {
   max-height: 100%;
 }
 
-#paper .line {
+.line {
   fill: none;
   stroke-width: 2px;
   clip-path: url(#clip);
   shape-rendering: geometricPrecision;
 }
 
-.axis path,
-.axis line {
-  fill: none;
-  stroke: #818181;
-  stroke-width: 3px;
-  shape-rendering: crispEdges;
+.axis {
+  path, line {
+    fill: none;
+    stroke: #818181;
+    stroke-width: 3px;
+    shape-rendering: crispEdges;
+  }
 }
 
 @for $i from 0 through 9 {
-  #paper .focus > .line:nth-child(10n+#{$i}){
+  .focus > .line:nth-child(10n+#{$i}){
     stroke: adjust-hue($start_color, ($i - 1)*36);
   }
 
   #legend .entry:nth-child(12n+#{$i + 1}) core-icon {
     color: adjust-hue($start_color, ($i - 1)*36);
   }
-}
-
-#legend {
-  padding: 10px;
-}
-
-#legend .entry {
-  float: left;
-  padding: 5px;
 }
