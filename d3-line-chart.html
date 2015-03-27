@@ -9,16 +9,17 @@
 Responsive and configurable Polymer element for line charts based on D3.js library.
 
 #### Roadmap for next releases:
-  - scale config and guard
-  - ticks control & formatting
-  - finish documentation
-  - fix helper functions
+  - scale detailed configuration
+  - ticks configuration
   - hover series details
-
-  - extend to d3-chart with other types configurable on series
+  - d3-chart element with other types configurable for series
 
 #### Example
-    <d3-line-chart metadata="{{ series }}" data="{{ records }}" flex></d3-line-chart>
+    <d3-line-chart metadata="{{ seriesConfiguration }}" data="{{ records }}" flex></d3-line-chart>
+
+#### Styling
+  - chart html is ready for styling which shouldn't affect responsiveness
+  - please set chart's width & height by css or add it to layout (you can use flex attribute on it)
 
 @element d3-line-chart
 @demo http://polymoar.github.io/components/d3-line-chart/demo.html
@@ -57,10 +58,10 @@ Responsive and configurable Polymer element for line charts based on D3.js libra
     (function(){
       /* TODO:
        * - scale as object for config
-       * - fix labels display (messy)
-       * - fix helper functions
-       * - fix margins if labels not present
        * - ticks control
+       * - configurable svg (line & axis colors and widths etc)
+       * - refactor labels display and similar (messy)
+       * - refactor helper functions
        */
       Polymer({
 
@@ -75,15 +76,20 @@ Responsive and configurable Polymer element for line charts based on D3.js libra
            */
           name: null,
           /**
-           * TODO: please look into demo source
-           *
-           * @attribute metadata
-           * @type Array
-           * @default null
-           */
-          metadata: null,
-          /**
-           * TODO: please look into demo source
+           * Array containing axes configuration. Each axis configuration is an object as described below:
+           * ```
+           * [{
+           *    name: String (required)
+           *    label: String
+           *    scale: String - scale of axis, defaults to scale attribute value
+           *    interpolation: String - mode of line interpolation for axis, defaults to interpolation attribute value
+           * }, ...]
+           * ```
+           * If not set defaults to:
+           * ```
+           * [{ name: 'xAxis' }, { name: 'yAxis' }]
+           * ```
+           * Note that x axis configuration should be first object in array and chart can display at most 3 axes (x, y1, y2)
            *
            * @attribute axes
            * @type Array
@@ -91,7 +97,27 @@ Responsive and configurable Polymer element for line charts based on D3.js libra
            */
           axes: null,
           /**
-           * TODO: please look into demo source
+           * Array containing series configuration. Each series configuration is an object as described below:
+           * ```
+           * [{
+           *    label: String (recommended if hideLegend not set)
+           *    axis: String - name of axis the series belongs to, if not set defaults to 'yAxis' which exists only if you did not defined own axes
+           *    interpolation: String - mode of line interpolation for series, if not set defaults to axis interpolation mode
+           *    x: function(record) - function getting x from record, if not set gets record[0] or record index + 1
+           *    y: function(record) - function getting y from record, if not set gets record[1]
+           * }, ...]
+           * ```
+           * Note that first element of array is drawn with lowest 'z-index'
+           *
+           * @attribute metadata
+           * @type Array
+           * @default null
+           */
+          metadata: null,
+          /**
+           * Array of records in form of:
+           *  - Objects (requires usage of metadata.y and recommended metadata.x)
+           *  - Arrays (does not require x y getters but you can still use them for derivative series display)
            *
            * @attribute data
            * @type Array
@@ -99,7 +125,7 @@ Responsive and configurable Polymer element for line charts based on D3.js libra
            */
           data: null,
           /**
-           * Line interpolation mode for whole chart.
+           * Default line interpolation mode
            * #### Possible values:
            *  - `linear` - piecewise linear segments, as in a polyline.
            *  - `linear-closed` - close the linear segments to form a polygon.
@@ -121,14 +147,12 @@ Responsive and configurable Polymer element for line charts based on D3.js libra
            */
           interpolation: 'linear',
           /**
-           * Scale mode for x axis.
+           * Default scale mode for axes
            * #### Possible values:
            *  - `linear` - no scale transformation
            *  - `time` - prepared for date / time / datetime values (automatically finds desired tick format)
            *  - `sqrt` - power transform with expotent 0.5
            *  - `log` - logarithmic transform with base 10 (requires x !== 0)
-           *
-           *  scale configuration and more scales on the way
            *
            * @attribute scale
            * @type String
@@ -180,7 +204,7 @@ Responsive and configurable Polymer element for line charts based on D3.js libra
             reflect: true
           },
           /**
-           * Object with settings for default svg margins override.
+           * Object with settings for default svg margins override
            * #### Properties:
            *  - `top` - default 0
            *  - `right` - default 60
@@ -269,7 +293,7 @@ Responsive and configurable Polymer element for line charts based on D3.js libra
 
             if(axis){
               line = d3.svg.line();
-              line.interpolate(axis.interpolation || me.interpolation || 'linear');
+              line.interpolate(dataset.interpolation || axis.interpolation || me.interpolation || 'linear');
               line.x(function(d){
                 return xAxis._scale((dataset.x) ? dataset.x(d) : (d[0]) ? d[0] : me.data.indexOf(d) + 1);
               });
