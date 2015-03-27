@@ -11,12 +11,13 @@
 </head>
 
 <body unresolved fullbleed layout vertical>
-  <d3-line-chart id="chart" flex></d3-line-chart>
+  <d3-line-chart id="chart" flex responsive></d3-line-chart>
   <script>
     var chart = document.querySelector('#chart');
+    chart.name = 'Perceptron proficiency and input weights over time';
     chart.metadata = [
       {
-        label: 'proficiency (%)',
+        label: 'proficiency',
         axis: 'proficiency',
         y: function(d){
           return 100 * d.proficiency;
@@ -67,14 +68,17 @@
     ];
     chart.axes = [
       {
-        name: 'xAxis'
+        name: 'xAxis',
+        label: 'Generation'
       },
       {
         name: 'weights',
-        scale: 'linear'
+        scale: 'linear',
+        label: 'Weight'
       },
       {
         name: 'proficiency',
+        label: 'Proficiency (%)',
         scale: 'linear',
         interpolation: 'step'
       }

@@ -1,88 +1,91 @@
-d3-line-chart {
-  overflow: hidden; }
+:host {
+  position: relative;
+  overflow: hidden;
+  display: block; }
+
+#title {
+  padding: 10px; }
+
+#legend .entry {
+  padding: 5px; }
+
+#legend[vertical] .entry {
+  float: left; }
 
 svg {
   max-width: 100%;
   max-height: 100%; }
 
-#paper .line {
+.line {
   fill: none;
   stroke-width: 2px;
   clip-path: url(#clip);
   shape-rendering: geometricPrecision; }
 
-.axis path,
-.axis line {
+.axis path, .axis line {
   fill: none;
   stroke: #818181;
   stroke-width: 3px;
   shape-rendering: crispEdges; }
 
-#paper .focus > .line:nth-child(10n+0) {
+.focus > .line:nth-child(10n+0) {
   stroke: #ff0099; }
 
 #legend .entry:nth-child(12n+1) core-icon {
   color: #ff0099; }
 
-#paper .focus > .line:nth-child(10n+1) {
+.focus > .line:nth-child(10n+1) {
   stroke: red; }
 
 #legend .entry:nth-child(12n+2) core-icon {
   color: red; }
 
-#paper .focus > .line:nth-child(10n+2) {
+.focus > .line:nth-child(10n+2) {
   stroke: #ff9900; }
 
 #legend .entry:nth-child(12n+3) core-icon {
   color: #ff9900; }
 
-#paper .focus > .line:nth-child(10n+3) {
+.focus > .line:nth-child(10n+3) {
   stroke: #ccff00; }
 
 #legend .entry:nth-child(12n+4) core-icon {
   color: #ccff00; }
 
-#paper .focus > .line:nth-child(10n+4) {
+.focus > .line:nth-child(10n+4) {
   stroke: #33ff00; }
 
 #legend .entry:nth-child(12n+5) core-icon {
   color: #33ff00; }
 
-#paper .focus > .line:nth-child(10n+5) {
+.focus > .line:nth-child(10n+5) {
   stroke: #00ff66; }
 
 #legend .entry:nth-child(12n+6) core-icon {
   color: #00ff66; }
 
-#paper .focus > .line:nth-child(10n+6) {
+.focus > .line:nth-child(10n+6) {
   stroke: cyan; }
 
 #legend .entry:nth-child(12n+7) core-icon {
   color: cyan; }
 
-#paper .focus > .line:nth-child(10n+7) {
+.focus > .line:nth-child(10n+7) {
   stroke: #0066ff; }
 
 #legend .entry:nth-child(12n+8) core-icon {
   color: #0066ff; }
 
-#paper .focus > .line:nth-child(10n+8) {
+.focus > .line:nth-child(10n+8) {
   stroke: #3300ff; }
 
 #legend .entry:nth-child(12n+9) core-icon {
   color: #3300ff; }
 
-#paper .focus > .line:nth-child(10n+9) {
+.focus > .line:nth-child(10n+9) {
   stroke: #cc00ff; }
 
 #legend .entry:nth-child(12n+10) core-icon {
   color: #cc00ff; }
-
-#legend {
-  padding: 10px; }
-
-#legend .entry {
-  float: left;
-  padding: 5px; }
 
 /*# sourceMappingURL=d3-line-chart.css.map */

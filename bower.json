@@ -1,11 +1,11 @@
 {
   "name": "d3-line-chart",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "homepage": "https://github.com/Polymoar/d3-line-chart",
   "authors": [
     "Junikorn <blazejwolanczyk@gmail.com>"
   ],
-  "description": "Polymer component for line charts based on D3.js library",
+  "description": "Responsive and configurable Polymer element for line charts based on D3.js library.",
   "main": "d3-line-chart.html",
   "keywords": [
     "web-components",
@@ -26,7 +26,8 @@
     "polymer": "Polymer/polymer#~0.5.5",
     "core-icons": "Polymer/core-icons#~0.5.5",
     "core-icon": "Polymer/core-icon#~0.5.5",
-    "lib-d3": "Polymoar/lib-d3#~3.5.5"
+    "lib-d3": "Polymoar/lib-d3#~3.5.5",
+    "px10-node-resize-detector": "PX10/px10-element-resize-detector#~0.0.1"
   },
   "devDependencies": {
     "web-component-tester": "*"
