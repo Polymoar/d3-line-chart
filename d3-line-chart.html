@@ -6,33 +6,29 @@
 <link rel="import" href="../px10-node-resize-detector/px10-element-resize-detector.html">
 
 <!--
-Polymer element for line charts based on D3.js library.
+Responsive and configurable Polymer element for line charts based on D3.js library.
 
 #### Roadmap for next releases:
-  - axis labels
-  - title
+  - scale config and guard
   - ticks control & formatting
   - finish documentation
   - fix helper functions
-  - scale config and guard
   - hover series details
-  - area support
+
+  - extend to d3-chart with other types configurable on series
 
 #### Example
     <d3-line-chart metadata="{{ series }}" data="{{ records }}" flex></d3-line-chart>
 
 @element d3-line-chart
 @demo http://polymoar.github.io/components/d3-line-chart/demo.html
-@blurb Polymer element for line charts based on D3.js library.
+@blurb Responsive and configurable Polymer element for line charts based on D3.js library.
 @status alpha
 @homepage https://github.com/Polymoar/d3-line-chart
 -->
 <polymer-element name="d3-line-chart">
   <template>
     <link rel="stylesheet" href="d3-line-chart.css">
-    <template if="{{ responsive }}">
-      <px10-element-resize-detector target="{{}}" on-resize="{{ prepare }}"></px10-element-resize-detector>
-    </template>
     <div id="container" fit layout vertical>
       <template if="{{ name }}">
         <div id="title">{{ name }}</div>
@@ -40,22 +36,35 @@ Polymer element for line charts based on D3.js library.
       <div flex layout vertical?="{{ vertical }}" horizontal?="{{ !vertical }}">
         <div id="chart" flex>
           <svg id="paper"></svg>
-        </div>
-        <div id="legend" vertical?="{{ vertical }}">
-          <template repeat="{{ dataset in metadata }}">
-            <div class="entry">
-              <core-icon icon="label"></core-icon>
-              <span>{{ dataset.label }}</span>
-            </div>
+          <template if="{{ responsive }}">
+            <px10-element-resize-detector target="{{ }}" on-resize="{{ prepare }}"></px10-element-resize-detector>
           </template>
         </div>
+        <template if="{{ !hideLegend }}">
+          <div id="legend" vertical?="{{ vertical }}">
+            <template repeat="{{ dataset in metadata }}">
+              <div class="entry">
+                <core-icon icon="label"></core-icon>
+                <span>{{ dataset.label }}</span>
+              </div>
+            </template>
+          </div>
+        </template>
       </div>
     </div>
   </template>
   <script>
     (function(){
-      //TODO: scale as object for config
+      /* TODO:
+       * - scale as object for config
+       * - fix labels display (messy)
+       * - fix helper functions
+       * - fix margins if labels not present
+       * - ticks control
+       */
       Polymer({
+
+        //published attributes
         publish: {
           /**
            * Chart title
@@ -134,7 +143,7 @@ Polymer element for line charts based on D3.js library.
            * @default false
            */
           responsive: {
-            value: true,
+            value: false,
             reflect: true
           },
           /**
@@ -160,12 +169,23 @@ Polymer element for line charts based on D3.js library.
             reflect: true
           },
           /**
+           * The `hideLegend` attribute if set disables legend display.
+           *
+           * @attribute legend
+           * @type boolean
+           * @default false
+           */
+          hideLegend: {
+            value: false,
+            reflect: true
+          },
+          /**
            * Object with settings for default svg margins override.
            * #### Properties:
            *  - `top` - default 0
-           *  - `right` - default 50
-           *  - `bottom` - default 25
-           *  - `left` - default 50
+           *  - `right` - default 60
+           *  - `bottom` - default 60
+           *  - `left` - default 60
            *
            * @attribute margin
            * @type Object
@@ -173,17 +193,20 @@ Polymer element for line charts based on D3.js library.
            */
           margin: null
         },
+
+        //watchers
         observe: {
           metadata: 'prepare',
           scale: 'prepare',
           interpolation: 'prepare',
           margin: 'prepare',
           axes: 'prepare',
-          vertical: 'prepare',
           data: 'redraw',
           range: 'redraw',
           exact: 'redraw'
         },
+
+        //initialization
         domReady: function(){
           var me = this;
           me.margin = { top: 0, right: 60, bottom: 60, left: 60};
@@ -195,6 +218,7 @@ Polymer element for line charts based on D3.js library.
           }
           me.prepare();
         },
+
         /**
          * The `prepare` method recreates chart with updated configuration attributes & size.
          *
@@ -202,26 +226,29 @@ Polymer element for line charts based on D3.js library.
          * @return {boolean} Returns true if succeeded, otherwise false.
          */
         prepare: function(){
-          var me = this;
+          var me = this,
+            bounds = me.$.chart.getBoundingClientRect();
+
           //if no data present abandon preparation
           if(!me.metadata || !me.data){
             return false;
           }
+
           //if layout not finished yet delay preparation of chart
-          if(!me.offsetWidth || !me.offsetHeight){
+          if(!bounds.width || !bounds.height){
             return false;
           }
 
           //clear svg and update size to match component
           var svg = d3.select(me.$.paper);
           svg.selectAll('*').remove();
-          svg.attr('width', me.$.chart.offsetWidth);
-          svg.attr('height', me.$.chart.offsetHeight);
+          svg.attr('width', bounds.width);
+          svg.attr('height', bounds.height);
 
           //calculate size of chart draw area
           var margin = me.margin,
-            width = me.$.chart.offsetWidth - margin.left - margin.right,
-            height = me.$.chart.offsetHeight - margin.top - margin.bottom,
+            width = bounds.width - margin.left - margin.right,
+            height = bounds.height - margin.top - margin.bottom,
             xAxis = me.axes[0];
 
           //define scale for x axis and y axes
@@ -279,7 +306,7 @@ Polymer element for line charts based on D3.js library.
             if(key === 0){
               _axis.attr("class", "x axis").attr("transform", "translate(0," + height + ")");
               if(axis.label){
-                labels.append("text").attr("y", margin.top + height + margin.bottom).attr("x", width / 2).attr("dy", "-1em").style("text-anchor", "middle").text(axis.label);
+                labels.append("text").attr("y", margin.top + height + margin.bottom).attr("x", margin.left + (width / 2)).attr("dy", "-1em").style("text-anchor", "middle").text(axis.label);
               }
             }else if(key < 3){
               _axis.attr("class", "y axis " + axis.name);
@@ -355,6 +382,7 @@ Polymer element for line charts based on D3.js library.
           //return success
           return true;
         },
+
         /**
          * The `redraw` method redraws chart with current data
          * (this method is called automatically on relevant attribute changes)
@@ -364,6 +392,7 @@ Polymer element for line charts based on D3.js library.
         redraw: function(){
           //placeholder
         },
+
         //helpers
         d3x: function(fun){ //do fun for all x values
           var me = this;
@@ -391,23 +420,6 @@ Polymer element for line charts based on D3.js library.
               }));
             }
           }));
-        },
-        //delay for layout
-        delay: function(count){
-          var me = this;
-          count = count || 0;
-          if(count < 5){
-            if(!me.offsetWidth || !me.offsetHeight){
-              if(me.timeout){
-                clearTimeout(me.timeout);
-              }
-              me.timeout = setTimeout(function(){
-                me.delay(count + 1);
-              }, 500);
-            }else{
-              me.prepare();
-            }
-          }
         }
       });
     })();

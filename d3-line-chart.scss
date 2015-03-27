@@ -1,27 +1,21 @@
 $start_color: red;
 
-d3-line-chart {
+:host {
+  position: relative;
   overflow: hidden;
+  display: block;
 }
 
 #title {
   padding: 10px;
 }
 
-#legend {
-//    padding: 10px;
-  .entry {
-    padding: 5px;
-  }
+#legend .entry {
+  padding: 5px;
 }
 
 #legend[vertical] .entry {
   float: left;
-//    :after {
-//      content:"";
-//      display:table;
-//      clear:both;
-//    }
 }
 
 svg {
