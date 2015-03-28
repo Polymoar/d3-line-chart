@@ -323,7 +323,11 @@ For more advanced configuration examples please look into demo source.
           //define scale for x axis and y axes and apply configuration
           var _scale, scale, scaleType;
           me.axes.forEach(function(axis, i){
-            scale = (typeof(axis.scale) === 'string') ? { type: axis.scale } : axis.scale;
+            if(axis.scale){
+              scale = (typeof(axis.scale) === 'string') ? { type: axis.scale } : axis.scale;
+            }else{
+              scale = (typeof(me.scale) === 'string') ? { type: me.scale } : me.scale;
+            }
             scaleType = (scale) ? scale.type : 'linear';
             scaleType = (scaleType === 'time' || typeof(d3.scale[scaleType]) === 'function') ? scaleType : 'linear';
             _scale = axis._scale = ((scaleType === 'time') ? d3.time.scale() : d3.scale[scaleType]()).range((i > 0) ? [height, 0] : [0, width]);
