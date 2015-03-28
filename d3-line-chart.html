@@ -206,7 +206,7 @@ Responsive and configurable Polymer element for line charts based on D3.js libra
           /**
            * Object with settings for default svg margins override
            * #### Properties:
-           *  - `top` - default 0
+           *  - `top` - default 10
            *  - `right` - default 60
            *  - `bottom` - default 60
            *  - `left` - default 60
@@ -246,7 +246,7 @@ Responsive and configurable Polymer element for line charts based on D3.js libra
         },
 
         /**
-         * The `prepare` method recreates chart with updated configuration attributes & size.
+         * The `prepare()` method recreates chart with updated configuration attributes & size.
          *
          * @method prepare
          * @return {boolean} Returns true if succeeded, otherwise false.
@@ -280,10 +280,10 @@ Responsive and configurable Polymer element for line charts based on D3.js libra
             xAxis = me.axes[0];
 
           //define scale for x axis and y axes
+          var _scale, scale;
           me.axes.forEach(function(axis, i){
-            axis.scale = axis.scale || me.scale || 'linear';
-            //TODO: config for scales
-            axis._scale = ((axis.scale === 'time') ? d3.time.scale() : d3.scale[axis.scale]()).range((i > 0) ? [height, 0] : [0, width]);
+            scale = axis.scale || me.scale || 'linear';
+            _scale = axis._scale = ((scale === 'time') ? d3.time.scale() : d3.scale[scale]()).range((i > 0) ? [height, 0] : [0, width]);
           });
 
           //create focus objects configurations
@@ -307,8 +307,9 @@ Responsive and configurable Polymer element for line charts based on D3.js libra
             }
           });
 
-          //settle axes orientation
+          //settle axes orientation and ticks
           var axisOrientation,
+            _axis, ticks,
             orientation = [
               'bottom',
               'left',
@@ -316,8 +317,19 @@ Responsive and configurable Polymer element for line charts based on D3.js libra
             ];
           me.axes.forEach(function(axis, key){
             axisOrientation = orientation[key];
+            ticks = axis.ticks;
             if(axisOrientation){
-              axis._axis = d3.svg.axis().scale(axis._scale).orient(axisOrientation);
+              _axis = axis._axis = d3.svg.axis().scale(axis._scale).orient(axisOrientation);
+            }
+            if(typeof(ticks) ===  'number'){
+              _axis.ticks(ticks);
+            }else if(typeof(ticks) === 'object'){
+              var option;
+              for(option in ticks){
+                if(typeof(_axis[option]) === 'function'){
+                  _axis[option](ticks[option]);
+                }
+              }
             }
           });
 
@@ -327,7 +339,6 @@ Responsive and configurable Polymer element for line charts based on D3.js libra
             labels = svg.append("g").attr("class", "labels");
 
           //append axes and labels to svg
-          var _axis;
           me.axes.forEach(function(axis, key){
             _axis = axes.append("g");
             if(key === 0){
@@ -368,24 +379,23 @@ Responsive and configurable Polymer element for line charts based on D3.js libra
             if(me.data){
 
               //setting domains
-              var min, max, epsilon;
+              var range, epsilon;
               me.axes.forEach(function(axis, key){
                 if(key > 0){
                   if(axis.range && axis.range.length === 2){ //if axis has predefined range
                     axis._scale.domain(axis.range);
                   }else{
                     //find y range for all data in axis
-                    min = me.d3y('min', axis.name);
-                    max = me.d3y('max', axis.name);
-                    epsilon = (!me.exact) ? (max - min) * 0.02 : 0; //if allowed broaden range for nicer looks
-                    axis._scale.domain([min - epsilon, max + epsilon]);
+                    range = d3.extent(me.getYs(axis.name));
+                    epsilon = (!me.exact) ? (range[1] - range[0]) * 0.02 : 0; //if allowed broaden range for nicer looks
+                    axis._scale.domain([range[0] - epsilon, range[1] + epsilon]);
                   }
                 }else{
                   if(me.range){ //if user defined specific range
                     axis._scale.domain(me.range);
                   }else{
                     //find x range for all data
-                    axis._scale.domain([me.d3x('min'), me.d3x('max')]);
+                    axis._scale.domain(d3.extent(me.getXs()));
                   }
                 }
               });
@@ -411,7 +421,7 @@ Responsive and configurable Polymer element for line charts based on D3.js libra
         },
 
         /**
-         * The `redraw` method redraws chart with current data
+         * The `redraw()` method redraws the chart with current data.
          *
          * @method redraw
          */
@@ -420,31 +430,45 @@ Responsive and configurable Polymer element for line charts based on D3.js libra
         },
 
         //helpers
-        d3x: function(fun){ //do fun for all x values
+        getX: function(dataset, d){
+          return (dataset.x) ? dataset.x(d) : (isNaN(d[0])) ? this.data.indexOf(d) + 1 : d[0];
+        },
+        getY: function(dataset, d){
+          return (dataset.y) ? dataset.y(d) : d[1];
+        },
+
+        /**
+         * The `getXs()` method returns all x values from current data.
+         *
+         * @method getXs
+         * @return {Array}
+         */
+        getXs: function(){
           var me = this;
-          return d3[fun](me.metadata.map(function(dataset){
-            if(dataset.x){
-              return d3[fun](me.data.map(dataset.x));
-            }else{
-              return d3[fun](me.data.map(function(record){
-                return (isNaN(record[0])) ? me.data.indexOf(record) + 1 : record[0]; //TODO: helper for getting x, y more than one place this happens
-              }));
-            }
+          return d3.merge(me.metadata.map(function(dataset){
+            return me.data.map(function(d){
+              return me.getX(dataset, d);
+            });
           }));
         },
-        d3y: function(fun, axisName){ //do fun for all y values from selected axis
+
+        /**
+         * The `getYs(axisName)` method returns all y values from selected axis.
+         *
+         * @method getYs
+         * @param {String} axisName
+         * @return {Array}
+         */
+        getYs: function(axisName){
+          axisName = axisName || this.axes[1].name;
           var me = this,
             datasets = me.metadata.filter(function(dataset){
               return dataset.axis === axisName;
             });
-          return d3[fun](datasets.map(function(dataset){
-            if(dataset.y){
-              return d3[fun](me.data.map(dataset.y));
-            }else{
-              return d3[fun](me.data.map(function(record){
-                return record[1];
-              }));
-            }
+          return d3.merge(datasets.map(function(dataset){
+            return me.data.map(function(d){
+              return me.getY(dataset, d);
+            });
           }));
         }
       });
