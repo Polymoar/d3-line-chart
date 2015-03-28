@@ -35,44 +35,53 @@
      vertical?="{{ vertical }}"
      responsive?="{{ responsive }}" flex></d3-line-chart>
   <div id="controls">
-    <div>Title: <input type="text" value="{{ name }}"></div>
-    <div>Responsive <input type="checkbox" checked="{{ responsive }}"></div>
-    <div>Legend <input type="checkbox" checked="{{ legend }}"></div>
-    <template if="{{ legend }}">
-      <div>Vertical <input type="checkbox" checked="{{ vertical }}"></div>
-    </template>
-    <div>Theme <input type="checkbox" checked="{{ theme }}"></div>
-    <div>Interpolation:
-      <select value="{{ interpolation }}">
-        <option value="">undefined</option>
-        <template repeat="{{ inter in interpolations }}">
-          <option value="{{ inter }}">{{inter}}</option>
-        </template>
-      </select>
+    <div layout horizontal>
+      <div><input type="button" value="chart.prepare()" on-tap="{{ prepare }}"></div>
+      <div>Responsive <input type="checkbox" checked="{{ responsive }}"></div>
+      <div>Themed <input type="checkbox" checked="{{ theme }}"></div>
+      <div>Legend <input type="checkbox" checked="{{ legend }}"></div>
+      <template if="{{ legend }}">
+        <div>Vertical <input type="checkbox" checked="{{ vertical }}"></div>
+      </template>
+      <span flex></span>
     </div>
     <div>
-      Scale:
-      <select value="{{ scale }}">
-        <option value="">undefined</option>
-        <template repeat="{{ s in scales }}">
-          <option value="{{ s.type }}">{{s.type}}</option>
-        </template>
-      </select>
-    </div>
-    <div>
-      Axes:&nbsp;<input type="button" value="Update configuration" on-tap="{{ prepare }}">
       <table>
         <tr>
-          <th></th>
+          <th>Subject</th>
           <th>Name</th>
           <th>Label</th>
           <th>Scale</th>
           <th>Interpolation</th>
         </tr>
+        <tr>
+          <td>chart</td>
+          <td colspan="2">
+            <div layout horizontal style="padding: 0;">
+              <input type="text" value="{{ name }}" flex>
+            </div>
+          </td>
+          <td>
+            <select value="{{ scale }}">
+              <option value="">undefined</option>
+              <template repeat="{{ s in scales }}">
+                <option value="{{ s.type }}">{{s.type}}</option>
+              </template>
+            </select>
+          </td>
+          <td>
+            <select value="{{ interpolation }}">
+              <option value="">undefined</option>
+              <template repeat="{{ inter in interpolations }}">
+                <option value="{{ inter }}">{{inter}}</option>
+              </template>
+            </select>
+          </td>
+        </tr>
         <template repeat="{{ axis, key in axes }}">
           <tr>
-            <td>{{ {x: key == 0, y0: key == 1, y1: key ==2} | tokenList }}</td>
-            <td><input type="text" value="{{ axis.name }}"></td>
+            <td>{{ {"x axis": key == 0, "y0 axis": key == 1, "y1 axis": key ==2} | tokenList }}</td>
+            <td><input type="text" value="{{ axis.name }}" disabled></td>
             <td><input type="text" value="{{ axis.label }}"></td>
             <td>
               <select value="{{ axis.scale }}">
