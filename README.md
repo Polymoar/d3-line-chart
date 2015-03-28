@@ -38,4 +38,4 @@ For detailed changelog, check [Releases](https://github.com/polymoar/d3-line-cha
 
 ## License
 
-[MIT License](http://opensource.org/licenses/MIT)
+[MIT License](http://opensource.org/licenses/MIT) © [Błażej Wolańczyk](https://github.com/Junikorn)

@@ -1,25 +1,44 @@
 <!-- imports -->
-<link rel="import" href="../polymer/polymer.html">
-<link rel="import" href="../core-icons/core-icons.html">
-<link rel="import" href="../core-icon/core-icon.html">
-<link rel="import" href="../lib-d3/lib-d3.html">
-<link rel="import" href="../px10-node-resize-detector/px10-element-resize-detector.html">
+<link rel='import' href='../polymer/polymer.html'>
+<link rel='import' href='../core-icons/core-icons.html'>
+<link rel='import' href='../core-icon/core-icon.html'>
+<link rel='import' href='../lib-d3/lib-d3.html'>
+<link rel='import' href='../px10-node-resize-detector/px10-element-resize-detector.html'>
 
 <!--
 Responsive and configurable Polymer element for line charts based on D3.js library.
 
-#### Roadmap for next releases:
-  - scale detailed configuration
-  - ticks configuration
-  - hover series details
-  - d3-chart element with other types configurable for series
+#### Basic usage example
+    <d3-line-chart data='{{ [[1,2],[2,4],[3,8],[4,16]] }}' flex></d3-line-chart>
 
-#### Example
-    <d3-line-chart metadata="{{ seriesConfiguration }}" data="{{ records }}" flex></d3-line-chart>
+#### More advanced configuration
+(x time scale with 4 ticks and label, y pow scale with exponent 0.10, responsive to size change)
+
+    <d3-line-chart flex data='{{ [[Date1,1],[Date2,2],[Date3,3]] }}'
+      title='Test chart'
+      axes='{{ [{ name: 'xAxis', scale: 'time', ticks: 4, label: 'Time' },
+        { name: 'yAxis', scale: { type: 'pow', exponent: 0.10 } }] }}'
+      responsive
+    ></d3-line-chart>
+
+For more advanced configuration examples please look into demo source.
 
 #### Styling
-  - chart html is ready for styling which shouldn't affect responsiveness
-  - please set chart's width & height by css or add it to layout (you can use flex attribute on it)
+  - set chart's width & height by css or add it to layout (you can use flex attribute on it)
+  - chart is ready for external styling and currently features one ready theme (enable theme with class='massive')
+
+#### Comments
+  - after changes inside specific axis or metadata configuration you will need to trigger prepare() for changes to take place
+  - you need to set chart's dimensions (at least min width/height) or put it into layout for it to display
+
+#### Roadmap for next releases
+  - save to file
+  - configurable lines and colors
+  - hover series details
+  - d3-chart element with other chart types
+
+#### Licence
+[MIT License](http://opensource.org/licenses/MIT) © [Błażej Wolańczyk](https://github.com/Junikorn)
 
 @element d3-line-chart
 @demo http://polymoar.github.io/components/d3-line-chart/demo.html
@@ -27,25 +46,25 @@ Responsive and configurable Polymer element for line charts based on D3.js libra
 @status alpha
 @homepage https://github.com/Polymoar/d3-line-chart
 -->
-<polymer-element name="d3-line-chart">
+<polymer-element name='d3-line-chart'>
   <template>
-    <link rel="stylesheet" href="d3-line-chart.css">
-    <div id="container" fit layout vertical>
-      <template if="{{ name }}">
-        <div id="title">{{ name }}</div>
+    <link rel='stylesheet' href='d3-line-chart.css'>
+    <div id='container' fit layout vertical>
+      <template if='{{ name }}'>
+        <div id='title'>{{ name }}</div>
       </template>
-      <div flex layout vertical?="{{ vertical }}" horizontal?="{{ !vertical }}">
-        <div id="chart" flex>
-          <svg id="paper"></svg>
-          <template if="{{ responsive }}">
-            <px10-element-resize-detector target="{{ }}" on-resize="{{ prepare }}"></px10-element-resize-detector>
+      <div flex layout vertical?='{{ vertical }}' horizontal?='{{ !vertical }}'>
+        <div id='chart' flex>
+          <svg id='paper'></svg>
+          <template if='{{ responsive }}'>
+            <px10-element-resize-detector target='{{ }}' on-resize='{{ prepare }}'></px10-element-resize-detector>
           </template>
         </div>
-        <template if="{{ legend }}">
-          <div id="legend" vertical?="{{ vertical }}">
-            <template repeat="{{ dataset in metadata }}">
-              <div class="entry">
-                <core-icon icon="label"></core-icon>
+        <template if='{{ legend }}'>
+          <div id='legend' vertical?='{{ vertical }}'>
+            <template repeat='{{ dataset in metadata }}'>
+              <div class='entry'>
+                <core-icon icon='label'></core-icon>
                 <span>{{ dataset.label }}</span>
               </div>
             </template>
@@ -57,18 +76,15 @@ Responsive and configurable Polymer element for line charts based on D3.js libra
   <script>
     (function(){
       /* TODO:
-       * - scale as object for config
-       * - ticks control
-       * - configurable svg (line & axis colors and widths etc)
-       * - refactor labels display and similar (messy)
-       * - refactor helper functions
+       * - configurable svg (line & axis colors and widths etc) ?
+       * - refactor everything :D
        */
       Polymer({
 
         //published attributes
         publish: {
           /**
-           * Chart title
+           * Chart title, if not set the title section is hidden
            *
            * @attribute name
            * @type String
@@ -81,43 +97,52 @@ Responsive and configurable Polymer element for line charts based on D3.js libra
            * [{
            *    name: String (required)
            *    label: String
-           *    scale: String - scale of axis, defaults to scale attribute value
+           *    scale: String or Object - scale of axis, defaults to scale attribute value
            *    interpolation: String - mode of line interpolation for axis, defaults to interpolation attribute value
+           *    ticks: Number or Object
+           *      Number - approximate number of ticks to display
+           *      Object - ticks configuration, each property will be argument of call to axis method with the same name
            * }, ...]
            * ```
-           * If not set defaults to:
-           * ```
-           * [{ name: 'xAxis' }, { name: 'yAxis' }]
-           * ```
-           * Note that x axis configuration should be first object in array and chart can display at most 3 axes (x, y1, y2)
+           * See D3.js documentation for [available axis methods](https://github.com/mbostock/d3/wiki/SVG-Axes#ticks)
+           *
+           * Note that x axis configuration should be first object in array and chart can display at most 3 axes [x, y1, y2].
            *
            * @attribute axes
            * @type Array
-           * @default null
+           * @default [{ name: 'xAxis' }, { name: 'yAxis' }]
            */
           axes: null,
           /**
            * Array containing series configuration. Each series configuration is an object as described below:
            * ```
            * [{
-           *    label: String (recommended if hideLegend not set)
-           *    axis: String - name of axis the series belongs to, if not set defaults to 'yAxis' which exists only if you did not defined own axes
-           *    interpolation: String - mode of line interpolation for series, if not set defaults to axis interpolation mode
-           *    x: function(record) - function getting x from record, if not set gets record[0] or record index + 1
-           *    y: function(record) - function getting y from record, if not set gets record[1]
+           *    label: String (recommended if `legend` attribute set)
+           *    axis: String - name of axis the series belongs to, if not set defaults to 'yAxis'
+           *    interpolation: String - mode of line interpolation for series, defaults to axis.interpolation
+           *    x: function(record) - function getting x from record
+           *    y: function(record) - function getting y from record (required if `data` contains objects)
            * }, ...]
            * ```
            * Note that first element of array is drawn with lowest 'z-index'
            *
            * @attribute metadata
            * @type Array
-           * @default null
+           * @default [{ axis: 'yAxis' }]
            */
           metadata: null,
           /**
            * Array of records in form of:
            *  - Objects (requires usage of metadata.y and recommended metadata.x)
-           *  - Arrays (does not require x y getters but you can still use them for derivative series display)
+           *  - Arrays (does not require x y getters but you can still use them for derivative data display)
+           *
+           *
+           *  ```
+           *  //ready to go
+           *  chart.data = [[x1,y1],[x2,y2], ...];
+           *  //requires getter for y in metadata, possible getter for x (eg. date)
+           *  chart.data = [{ date: Date1, income: 5000 },{ date: Date2, income: 1500 }, ...];
+           *  ```
            *
            * @attribute data
            * @type Array
@@ -149,13 +174,29 @@ Responsive and configurable Polymer element for line charts based on D3.js libra
           /**
            * Default scale mode for axes
            * #### Possible values:
-           *  - `linear` - no scale transformation
-           *  - `time` - prepared for date / time / datetime values (automatically finds desired tick format)
-           *  - `sqrt` - power transform with expotent 0.5
-           *  - `log` - logarithmic transform with base 10 (requires x !== 0)
+           *  - `linear` - construct a linear quantitative scale
+           *  - `time` - construct a linear time scale
+           *  - `pow` - construct a quantitative scale with an exponential transform, setting exponent recommended
+           *  - `sqrt` - construct a quantitative scale with a square root transform
+           *  - `log` - construct a quantitative scale with an logarithmic transform, requires non 0 x values
+           *  - `quantile` - construct a quantitative scale mapping to quantiles, requires setting domain and range
+           *  - `quantize` - construct a linear quantitative scale with a discrete output range
+           *  - `threshold` - construct a threshold scale with a discrete output range
+           *  - `ordinal` - construct an ordinal scale
+           *
+           *
+           *  If you want to add additional settings to your scale turn it to object with property `type` containing selected scale mode.
+           *  ```
+           *  //scale without extra configuration
+           *  scale = 'sqrt';
+           *  //scale with configuration
+           *  scale = { type: 'pow', exponent: 2 };
+           *  ```
+           *
+           *  See D3.js documentation for [available scale settings](https://github.com/mbostock/d3/wiki/API-Reference#d3scale-scales)
            *
            * @attribute scale
-           * @type String
+           * @type String or Object
            * @default 'linear'
            */
           scale: 'linear',
@@ -233,7 +274,7 @@ Responsive and configurable Polymer element for line charts based on D3.js libra
         //lifecycle
         ready: function(){
           var me = this;
-          me.uid = ("0000" + (Math.random()*Math.pow(36,4) << 0).toString(36)).slice(-4); //required because of svg clip paths overlapping
+          me.uid = ('0000' + (Math.random()*Math.pow(36,4) << 0).toString(36)).slice(-4); //required because of svg clip paths overlapping
           me.margin = me.margin || { top: 10, right: 60, bottom: 60, left: 60};
           me.axes = me.axes || [
             { name: 'xAxis' },
@@ -264,7 +305,7 @@ Responsive and configurable Polymer element for line charts based on D3.js libra
             return false;
           }
 
-          //if layout not finished yet delay preparation of chart
+          //if element is not visible abandon preparation
           if(!bounds.width || !bounds.height){
             return false;
           }
@@ -279,11 +320,19 @@ Responsive and configurable Polymer element for line charts based on D3.js libra
             height = bounds.height - margin.top - margin.bottom,
             xAxis = me.axes[0];
 
-          //define scale for x axis and y axes
-          var _scale, scale;
+          //define scale for x axis and y axes and apply configuration
+          var _scale, scale, scaleType;
           me.axes.forEach(function(axis, i){
-            scale = axis.scale || me.scale || 'linear';
-            _scale = axis._scale = ((scale === 'time') ? d3.time.scale() : d3.scale[scale]()).range((i > 0) ? [height, 0] : [0, width]);
+            scale = (typeof(axis.scale) === 'string') ? { type: axis.scale } : axis.scale;
+            scaleType = (scale) ? scale.type : 'linear';
+            scaleType = (scaleType === 'time' || typeof(d3.scale[scaleType]) === 'function') ? scaleType : 'linear';
+            _scale = axis._scale = ((scaleType === 'time') ? d3.time.scale() : d3.scale[scaleType]()).range((i > 0) ? [height, 0] : [0, width]);
+            var option;
+            for(option in scale){
+              if(option !== 'type' && scale.hasOwnProperty(option) && typeof(_scale[option]) === 'function'){
+                _scale[option](scale[option]);
+              }
+            }
           });
 
           //create focus objects configurations
@@ -298,10 +347,10 @@ Responsive and configurable Polymer element for line charts based on D3.js libra
               line = d3.svg.line();
               line.interpolate(dataset.interpolation || axis.interpolation || me.interpolation || 'linear');
               line.x(function(d){
-                return xAxis._scale((dataset.x) ? dataset.x(d) : (isNaN(d[0])) ? me.data.indexOf(d) + 1 : d[0]);
+                return xAxis._scale(me.getX(dataset, d));
               });
               line.y(function(d){
-                return axis._scale((dataset.y) ? dataset.y(d) : d[1]);
+                return axis._scale(me.getY(dataset, d));
               });
               lines.push(line);
             }
@@ -326,7 +375,7 @@ Responsive and configurable Polymer element for line charts based on D3.js libra
             }else if(typeof(ticks) === 'object'){
               var option;
               for(option in ticks){
-                if(typeof(_axis[option]) === 'function'){
+                if(ticks.hasOwnProperty(option) && typeof(_axis[option]) === 'function'){
                   _axis[option](ticks[option]);
                 }
               }
@@ -334,27 +383,27 @@ Responsive and configurable Polymer element for line charts based on D3.js libra
           });
 
           //create svg groups
-          var focus = svg.append("g").attr("class", "focus").attr("transform", "translate(" + margin.left + "," + margin.top + ")").attr("clip-path", "url(#cp" + me.uid + ")"),
-            axes = svg.append("g").attr("class", "axes").attr("transform", "translate(" + margin.left + "," + margin.top + ")"),
-            labels = svg.append("g").attr("class", "labels");
+          var focus = svg.append('g').attr('class', 'focus').attr('transform', 'translate(' + margin.left + ',' + margin.top + ')').attr('clip-path', 'url(#cp' + me.uid + ')'),
+            axes = svg.append('g').attr('class', 'axes').attr('transform', 'translate(' + margin.left + ',' + margin.top + ')'),
+            labels = svg.append('g').attr('class', 'labels');
 
           //append axes and labels to svg
           me.axes.forEach(function(axis, key){
-            _axis = axes.append("g");
+            _axis = axes.append('g');
             if(key === 0){
-              _axis.attr("class", "x axis").attr("transform", "translate(0," + height + ")");
+              _axis.attr('class', 'x axis').attr('transform', 'translate(0,' + height + ')');
               if(axis.label){
-                labels.append("text").attr("y", margin.top + height + margin.bottom).attr("x", margin.left + (width / 2)).attr("dy", "-1em").style("text-anchor", "middle").text(axis.label);
+                labels.append('text').attr('y', margin.top + height + margin.bottom).attr('x', margin.left + (width / 2)).attr('dy', '-1em').style('text-anchor', 'middle').text(axis.label);
               }
             }else if(key < 3){
-              _axis.attr("class", "y axis " + axis.name);
+              _axis.attr('class', 'y axis ' + axis.name);
               if(key === 2){
-                _axis.attr("transform", "translate(" + width + " ,0)");
+                _axis.attr('transform', 'translate(' + width + ' ,0)');
                 if(axis.label){
-                  labels.append("text").attr("transform", "rotate(-90)").attr("y", width + margin.right + margin.left).attr("x", 0 - (height/2)).attr("dy", "-1em").style("text-anchor", "middle").text(axis.label);
+                  labels.append('text').attr('transform', 'rotate(-90)').attr('y', width + margin.right + margin.left).attr('x', 0 - (height/2)).attr('dy', '-1em').style('text-anchor', 'middle').text(axis.label);
                 }
               }else if(axis.label){
-                labels.append("text").attr("transform", "rotate(90)").attr("y", 0).attr("x", height/2).attr("dy", "-1em").style("text-anchor", "middle").text(axis.label);
+                labels.append('text').attr('transform', 'rotate(90)').attr('y', 0).attr('x', height/2).attr('dy', '-1em').style('text-anchor', 'middle').text(axis.label);
               }
             }
             _axis.call(axis._axis);
@@ -362,17 +411,17 @@ Responsive and configurable Polymer element for line charts based on D3.js libra
 
           //append lines to svg
           lines.forEach(function(line, i){
-            focus.append("path").attr("class", "line l" + i);
+            focus.append('path').attr('class', 'line l' + i);
           });
 
           //append clipping path to svg
-          svg.append("defs").append("clipPath")
-            .attr("id", "cp" + me.uid)
-            .append("rect")
-            .attr("width", width)
+          svg.append('defs').append('clipPath')
+            .attr('id', 'cp' + me.uid)
+            .append('rect')
+            .attr('width', width)
             //height & translate manipulation for proper exact display
-            .attr("height", height + 4)
-            .attr("transform", "translate(0 ,-2)");
+            .attr('height', height + 4)
+            .attr('transform', 'translate(0 ,-2)');
 
           //create redraw function
           me.redraw = function(){
@@ -402,14 +451,14 @@ Responsive and configurable Polymer element for line charts based on D3.js libra
 
               //update lines
               lines.forEach(function(line, i){
-                focus.select(".line.l" + i).datum(me.data).transition().attr("d", line);
+                focus.select('.line.l' + i).datum(me.data).transition().attr('d', line);
               });
             }
 
             //update axes
-            axes.select(".x.axis").transition().call(xAxis._axis);
+            axes.select('.x.axis').transition().call(xAxis._axis);
             me.axes.forEach(function(axis){
-              axes.select(".y.axis." + axis.name).transition().call(axis._axis);
+              axes.select('.y.axis.' + axis.name).transition().call(axis._axis);
             });
           };
 
