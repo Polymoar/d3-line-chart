@@ -25,8 +25,7 @@ svg {
 
 .line {
   fill: none;
-  stroke-width: 2px;
-  clip-path: url(#clip);
+  stroke-width: 1px;
   shape-rendering: geometricPrecision;
 }
 
@@ -34,8 +33,18 @@ svg {
   path, line {
     fill: none;
     stroke: #818181;
-    stroke-width: 3px;
+    stroke-width: 1px;
     shape-rendering: crispEdges;
+  }
+}
+
+:host-context(.massive){
+  .line {
+    stroke-width: 2px;
+  }
+
+  path, line {
+    stroke-width: 3px;
   }
 }
 
