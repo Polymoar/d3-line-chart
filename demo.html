@@ -10,10 +10,19 @@
   <link rel="import" href="d3-line-chart.html">
 </head>
 
-<body unresolved fullbleed layout vertical>
-  <d3-line-chart id="chart" flex responsive></d3-line-chart>
+<body unresolved fullbleed layout horizontal>
+  <d3-line-chart id="chart" legend responsive flex></d3-line-chart>
+  <div flex vertical layout>
+    <d3-line-chart id="chart2" responsive flex></d3-line-chart>
+    <d3-line-chart id="chart3" responsive flex></d3-line-chart>
+  </div>
   <script>
-    var chart = document.querySelector('#chart');
+    var chart = document.querySelector('#chart'),
+      chart2 = document.querySelector('#chart2'),
+      chart3 = document.querySelector('#chart3');
+    chart2.data = [[0,1],[1,2],[2,4],[3,8]];
+    chart3.axes = [{ name: 'x', scale: 'time', label: 'Time' }, { name: 'yAxis' }];
+    chart3.data = [[new Date('1990-01-01'),1],[new Date('2000-01-01'),2],[new Date('2010-01-01'),4],[new Date('2015-01-01'),8]];
     chart.name = 'Perceptron proficiency and input weights over time';
     chart.metadata = [
       {

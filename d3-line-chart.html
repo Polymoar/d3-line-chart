@@ -41,7 +41,7 @@ Responsive and configurable Polymer element for line charts based on D3.js libra
             <px10-element-resize-detector target="{{ }}" on-resize="{{ prepare }}"></px10-element-resize-detector>
           </template>
         </div>
-        <template if="{{ !hideLegend }}">
+        <template if="{{ legend }}">
           <div id="legend" vertical?="{{ vertical }}">
             <template repeat="{{ dataset in metadata }}">
               <div class="entry">
@@ -193,13 +193,13 @@ Responsive and configurable Polymer element for line charts based on D3.js libra
             reflect: true
           },
           /**
-           * The `hideLegend` attribute if set disables legend display.
+           * The `legend` attribute if set enables legend display.
            *
            * @attribute legend
            * @type boolean
            * @default false
            */
-          hideLegend: {
+          legend: {
             value: false,
             reflect: true
           },
@@ -230,17 +230,19 @@ Responsive and configurable Polymer element for line charts based on D3.js libra
           exact: 'redraw'
         },
 
-        //initialization
-        domReady: function(){
+        //lifecycle
+        ready: function(){
           var me = this;
-          me.margin = { top: 0, right: 60, bottom: 60, left: 60};
-          if(!me.axes){ //if axes not defined create default
-            me.axes = [
-              { name: 'xAxis' },
-              { name: 'yAxis' }
-            ];
-          }
-          me.prepare();
+          me.uid = ("0000" + (Math.random()*Math.pow(36,4) << 0).toString(36)).slice(-4); //required because of svg clip paths overlapping
+          me.margin = me.margin || { top: 10, right: 60, bottom: 60, left: 60};
+          me.axes = me.axes || [
+            { name: 'xAxis' },
+            { name: 'yAxis' }
+          ];
+          me.metadata = me.metadata || [{ axis: 'yAxis' }];
+        },
+        domReady: function(){
+          this.prepare();
         },
 
         /**
@@ -251,10 +253,14 @@ Responsive and configurable Polymer element for line charts based on D3.js libra
          */
         prepare: function(){
           var me = this,
-            bounds = me.$.chart.getBoundingClientRect();
+            bounds = me.$.chart.getBoundingClientRect(),
+            svg = d3.select(me.$.paper);
 
-          //if no data present abandon preparation
-          if(!me.metadata || !me.data){
+          //clear svg
+          svg.selectAll('*').remove();
+
+          //if no config present abandon preparation
+          if(!me.axes || !me.metadata){
             return false;
           }
 
@@ -263,9 +269,7 @@ Responsive and configurable Polymer element for line charts based on D3.js libra
             return false;
           }
 
-          //clear svg and update size to match component
-          var svg = d3.select(me.$.paper);
-          svg.selectAll('*').remove();
+          //update svg size to match component
           svg.attr('width', bounds.width);
           svg.attr('height', bounds.height);
 
@@ -286,7 +290,6 @@ Responsive and configurable Polymer element for line charts based on D3.js libra
           var lines = [], line;
           me.metadata.forEach(function(dataset){
             dataset.axis = dataset.axis || 'yAxis';
-            dataset.type = dataset.type || 'line';
             var axis = me.axes.filter(function(axis){
                 return axis.name === dataset.axis;
               })[0];
@@ -295,7 +298,7 @@ Responsive and configurable Polymer element for line charts based on D3.js libra
               line = d3.svg.line();
               line.interpolate(dataset.interpolation || axis.interpolation || me.interpolation || 'linear');
               line.x(function(d){
-                return xAxis._scale((dataset.x) ? dataset.x(d) : (d[0]) ? d[0] : me.data.indexOf(d) + 1);
+                return xAxis._scale((dataset.x) ? dataset.x(d) : (isNaN(d[0])) ? me.data.indexOf(d) + 1 : d[0]);
               });
               line.y(function(d){
                 return axis._scale((dataset.y) ? dataset.y(d) : d[1]);
@@ -319,7 +322,7 @@ Responsive and configurable Polymer element for line charts based on D3.js libra
           });
 
           //create svg groups
-          var focus = svg.append("g").attr("class", "focus").attr("transform", "translate(" + margin.left + "," + margin.top + ")"),
+          var focus = svg.append("g").attr("class", "focus").attr("transform", "translate(" + margin.left + "," + margin.top + ")").attr("clip-path", "url(#cp" + me.uid + ")"),
             axes = svg.append("g").attr("class", "axes").attr("transform", "translate(" + margin.left + "," + margin.top + ")"),
             labels = svg.append("g").attr("class", "labels");
 
@@ -353,7 +356,7 @@ Responsive and configurable Polymer element for line charts based on D3.js libra
 
           //append clipping path to svg
           svg.append("defs").append("clipPath")
-            .attr("id", "clip")
+            .attr("id", "cp" + me.uid)
             .append("rect")
             .attr("width", width)
             //height & translate manipulation for proper exact display
@@ -362,7 +365,7 @@ Responsive and configurable Polymer element for line charts based on D3.js libra
 
           //create redraw function
           me.redraw = function(){
-            if(me.data){ //if there is anything to show
+            if(me.data){
 
               //setting domains
               var min, max, epsilon;
@@ -387,17 +390,17 @@ Responsive and configurable Polymer element for line charts based on D3.js libra
                 }
               });
 
-              //update axes
-              axes.select(".x.axis").transition().call(xAxis._axis);
-              me.axes.forEach(function(axis){
-                axes.select(".y.axis." + axis.name).transition().call(axis._axis);
-              });
-
               //update lines
               lines.forEach(function(line, i){
                 focus.select(".line.l" + i).datum(me.data).transition().attr("d", line);
               });
             }
+
+            //update axes
+            axes.select(".x.axis").transition().call(xAxis._axis);
+            me.axes.forEach(function(axis){
+              axes.select(".y.axis." + axis.name).transition().call(axis._axis);
+            });
           };
 
           //do first redraw
@@ -409,7 +412,6 @@ Responsive and configurable Polymer element for line charts based on D3.js libra
 
         /**
          * The `redraw` method redraws chart with current data
-         * (this method is called automatically on relevant attribute changes)
          *
          * @method redraw
          */
@@ -425,7 +427,7 @@ Responsive and configurable Polymer element for line charts based on D3.js libra
               return d3[fun](me.data.map(dataset.x));
             }else{
               return d3[fun](me.data.map(function(record){
-                return (record[0]) ? record[0] : me.data.indexOf(record) + 1; //TODO: helper for getting x, y more than one place this happens
+                return (isNaN(record[0])) ? me.data.indexOf(record) + 1 : record[0]; //TODO: helper for getting x, y more than one place this happens
               }));
             }
           }));
