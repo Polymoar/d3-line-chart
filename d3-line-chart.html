@@ -74,11 +74,14 @@ For more advanced configuration examples please look into demo source.
     </div>
   </template>
   <script>
-    (function(d3){
+    (function(d3, undefined){
       /* TODO:
        * - configurable svg (line & axis colors and widths etc) ?
        * - refactor everything :D
        * - fix getting x, y in each call of .map to use of one time generated getter -> huge amount of unnecessary operations done there
+       * - fix y label display to match margin
+       * - nice for axes ?
+       * - rename range to domain ?
        */
       Polymer({
 
@@ -99,6 +102,7 @@ For more advanced configuration examples please look into demo source.
            *    name: String (required)
            *    label: String
            *    scale: String or Object - scale of axis, defaults to scale attribute value
+           *    range: Array - domain of axis (if not specified covers all data)
            *    interpolation: String - mode of line interpolation for axis, defaults to interpolation attribute value
            *    ticks: Number or Object
            *      Number - approximate number of ticks to display
@@ -173,6 +177,14 @@ For more advanced configuration examples please look into demo source.
            */
           interpolation: 'linear',
           /**
+           * X domain of the chart. If not specified covers all data
+           *
+           * @attribute range
+           * @type Array
+           * @default null
+           */
+          range: null,
+          /**
            * Default scale mode for axes
            * #### Possible values:
            *  - `linear` - construct a linear quantitative scale
@@ -224,13 +236,13 @@ For more advanced configuration examples please look into demo source.
             reflect: true
           },
           /**
-           * The `exact` attribute if set disables broadening axes range which is applied for better display of data series close to range extremes.
+           * The `nice` attribute if set enables broadening axes range which is applied for better display of data series close to range extremes.
            *
-           * @attribute exact
+           * @attribute nice
            * @type boolean
            * @default false
            */
-          exact: {
+          nice: {
             value: false,
             reflect: true
           },
@@ -269,7 +281,7 @@ For more advanced configuration examples please look into demo source.
           axes: 'prepare',
           data: 'redraw',
           range: 'redraw',
-          exact: 'redraw'
+          nice: 'redraw'
         },
 
         //lifecycle
@@ -316,10 +328,16 @@ For more advanced configuration examples please look into demo source.
           svg.attr('height', bounds.height);
 
           //calculate size of chart draw area
-          var margin = me.margin,
+          var margin = me.margin || {},
             width = bounds.width - margin.left - margin.right,
             height = bounds.height - margin.top - margin.bottom,
             xAxis = me.axes[0];
+
+          //margin secure
+          margin.top = (isNaN(margin.top)) ? 10 : +margin.top;
+          margin.right = (isNaN(margin.right)) ? 60 : +margin.right;
+          margin.bottom = (isNaN(margin.bottom)) ? 60 : +margin.bottom;
+          margin.left = (isNaN(margin.left)) ? 60 : +margin.left;
 
           //define scale for x axis and y axes and apply configuration
           var _scale, scale, scaleType;
@@ -441,22 +459,20 @@ For more advanced configuration examples please look into demo source.
                   }else{
                     //set y domain for all data in axis
                     range = d3.extent(me.getYs(axis.name));
-                    if(!me.exact){
+                    if(me.nice){
                       epsilon = (range[1] - range[0]) * 0.02;
-                      range = [range[0], range[1] + epsilon];
+                      range = [range[0] - epsilon, range[1] + epsilon];
                     }
                     axis._scale.domain(range);
-                    if(!me.exact && typeof(axis._scale.nice) === 'function'){
+                    if(me.nice && typeof(axis._scale.nice) === 'function'){
                       axis._scale.nice();
                     }
                   }
                 }else{
-                  if(me.range){ //if user defined specific range
-                    axis._scale.domain(me.range);
-                  }else{
-                    //find x range for all data
-                    axis._scale.domain(d3.extent(me.getXs()));
-                  }
+                  //set predefined x domain or cover all x
+                  range = me.range || axis.range;
+                  range = (range && range.length === 2) ? range : d3.extent(me.getXs());
+                  axis._scale.domain(range);
                 }
               });
 
@@ -491,10 +507,10 @@ For more advanced configuration examples please look into demo source.
 
         //helpers
         getX: function(dataset, d){
-          return (dataset.x) ? dataset.x(d) : (isNaN(d[0])) ? this.data.indexOf(d) + 1 : d[0];
+          return (typeof(dataset.x) === 'function') ? dataset.x(d) : (dataset.x) ? d[dataset.x] : (isNaN(d[0])) ? this.data.indexOf(d) + 1 : d[0];
         },
         getY: function(dataset, d){
-          return (dataset.y) ? dataset.y(d) : d[1];
+          return (typeof(dataset.y) === 'function') ? dataset.y(d) : (dataset.y) ? d[dataset.y] : d[1];
         },
 
         /**

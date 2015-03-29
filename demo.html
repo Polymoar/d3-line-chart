@@ -17,6 +17,7 @@
     min-height: 500px;
   }
   #controls {
+    min-width: 800px;
     padding: 10px;
   }
   #controls div {
@@ -25,6 +26,12 @@
   #controls select {
     width: 100%;
   }
+  #range {
+    max-width: 200px;
+  }
+  #margin {
+    max-width: 250px;
+  }
 </style>
 <template id="app" is="auto-binding">
   <d3-line-chart id="chartDemo" class="{{ {massive: theme } | tokenList }}"
@@ -32,20 +39,41 @@
      axes="{{ axes }}"
      metadata="{{ metadata }}"
      data="{{ data }}"
+     range="{{ range }}"
      interpolation="{{ interpolation }}"
      scale="{{ scale }}"
      legend?="{{ legend }}"
+     nice?="{{ nice }}"
      vertical?="{{ vertical }}"
+     margin="{{ margin }}"
      responsive?="{{ responsive }}" flex></d3-line-chart>
-  <div id="controls">
+  <div id="controls" layout vertical>
     <div layout horizontal>
       <div><input type="button" value="chart.prepare()" on-tap="{{ prepare }}"></div>
+      <div id="range" layout horizontal>
+        <template if="{{ !domain }}">
+          <input type="button" value="Set range" on-tap="{{ setRange }}">
+        </template>
+        <template if="{{ domain }}">
+          <input type="button" value="Unset range" on-tap="{{ unsetRange }}">
+          <input type="text" value="{{ range[0] }}" flex>
+          <input type="text" value="{{ range[1] }}" flex>
+        </template>
+      </div>
       <div>Responsive <input type="checkbox" checked="{{ responsive }}"></div>
       <div>Themed <input type="checkbox" checked="{{ theme }}"></div>
+      <div>Nice <input type="checkbox" checked="{{ nice }}"></div>
       <div>Legend <input type="checkbox" checked="{{ legend }}"></div>
       <template if="{{ legend }}">
         <div>Vertical <input type="checkbox" checked="{{ vertical }}"></div>
       </template>
+      <div id="margin" layout horizontal>
+        Margin&nbsp;
+        <input type="text" value="{{ margin.top }}" flex>
+        <input type="text" value="{{ margin.right }}" flex>
+        <input type="text" value="{{ margin.bottom }}" flex>
+        <input type="text" value="{{ margin.left }}" flex>
+      </div>
       <span flex></span>
     </div>
     <div>
@@ -136,8 +164,22 @@
                 </template>
               </select>
             </td>
-            <td>{{ { undefined: !series.x, function: typeof(series.x) == 'function' } | tokenList}}</td>
-            <td>{{ { undefined: !series.y, function: typeof(series.y) == 'function' } | tokenList}}</td>
+            <td>
+              <template if="{{ typeof(series.x) == 'function' }}">
+                {{ typeof(series.x) }}
+              </template>
+              <template if="{{ typeof(series.x) == 'string' || typeof(series.x) == 'undefined' }}">
+                <input type="text" value="{{ series.x }}" placeholder="undefined">
+              </template>
+            </td>
+            <td>
+              <template if="{{ typeof(series.y) == 'function' }}">
+                {{ typeof(series.y) }}
+              </template>
+              <template if="{{ typeof(series.y) == 'string' || typeof(series.y) == 'undefined' }}">
+                <input type="text" value="{{ series.y }}" placeholder="undefined">
+              </template>
+            </td>
           </tr>
         </template>
       </table>
@@ -147,7 +189,7 @@
 
   <script>
     window.addEventListener('polymer-ready', function(e) {
-      var chart = document.querySelector('#app');
+      var chart = window.chart = document.querySelector('#app');
       chart.responsive = true;
       chart.interpolations = [
         'linear', 'linear-closed',
@@ -177,6 +219,14 @@
       chart.prepare = function(){
         document.querySelector('#chartDemo').prepare();
       };
+      chart.setRange = function(){
+        chart.range = [1, 10];
+        chart.domain = true;
+      };
+      chart.unsetRange = function(){
+        chart.range = null;
+        chart.domain = false;
+      };
       chart.typeof = function(o){
         return typeof(o);
       };
@@ -185,9 +235,10 @@
         {
           label: 'proficiency',
           axis: 'proficiency',
-          y: function (d) {
-            return 100 * d.proficiency;
-          }
+          y: 'proficiency'
+//            function (d) {
+//            return 100 * d.proficiency;
+//          }
         },
         {
           label: 'weight1',
@@ -243,7 +294,7 @@
         },
         {
           name: 'proficiency',
-          label: 'Proficiency (%)',
+          label: 'Proficiency',
           interpolation: 'step'
         }
       ];
