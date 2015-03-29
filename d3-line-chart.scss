@@ -55,8 +55,10 @@ svg {
     stroke-width: 2px;
   }
 
-  path, line {
-    stroke-width: 3px;
+  .axis {
+    path, line {
+      stroke-width: 3px;
+    }
   }
 }
 

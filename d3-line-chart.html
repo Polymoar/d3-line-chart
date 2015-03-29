@@ -78,7 +78,6 @@ For more advanced configuration examples please look into demo source.
       /* TODO:
        * - configurable svg (line & axis colors and widths etc) ?
        * - refactor everything :D
-       * - fix getting x, y in each call of .map to use of one time generated getter -> huge amount of unnecessary operations done there
        * - fix y label display to match margin
        * - nice for axes ?
        * - rename range to domain ?
@@ -376,18 +375,20 @@ For more advanced configuration examples please look into demo source.
           var lines = [], line;
           me.metadata.forEach(function(dataset){
             dataset.axis = dataset.axis || 'yAxis';
-            var axis = me.axes.filter(function(axis){
+            var getterX, getterY, axis = me.axes.filter(function(axis){
                 return axis.name === dataset.axis;
               })[0];
 
             if(axis){
               line = d3.svg.line();
               line.interpolate(dataset.interpolation || axis.interpolation || me.interpolation || 'linear');
+              getterX = me.getXgetter(dataset);
               line.x(function(d){
-                return xAxis._scale(me.getX(dataset, d));
+                return xAxis._scale(getterX(d));
               });
+              getterY = me.getYgetter(dataset);
               line.y(function(d){
-                return axis._scale(me.getY(dataset, d));
+                return axis._scale(getterY(d));
               });
               lines.push(line);
             }
@@ -521,11 +522,48 @@ For more advanced configuration examples please look into demo source.
         },
 
         //helpers
-        getX: function(dataset, d){
-          return (typeof(dataset.x) === 'function') ? dataset.x(d) : (dataset.x) ? d[dataset.x] : (isNaN(d[0])) ? this.data.indexOf(d) + 1 : d[0];
+        getXgetter: function(dataset){
+          var me = this, sample;
+          if(!me.data || !me.data.length){
+            throw Error('Can\'t sample records, no data');
+          }
+          sample = me.data[0];
+          if(typeof(dataset.x) === 'function'){
+            return function(d){
+              return dataset.x(d);
+            }
+          }else if(dataset.x){
+            return function(d){
+              return d[dataset.x];
+            }
+          }else if(isNaN(sample[0])){
+            return function(d){
+              return me.data.indexOf(d) + 1;
+            }
+          }else{
+            return function(d){
+              return d[0];
+            }
+          }
         },
-        getY: function(dataset, d){
-          return (typeof(dataset.y) === 'function') ? dataset.y(d) : (dataset.y) ? d[dataset.y] : d[1];
+        getYgetter: function(dataset){
+          var me = this;
+          if(!me.data || !me.data.length){
+            throw Error('Can\'t sample records, no data');
+          }
+          if(typeof(dataset.y) === 'function'){
+            return function(d){
+              return dataset.y(d);
+            }
+          }else if(dataset.y){
+            return function(d){
+              return d[dataset.y];
+            }
+          }else{
+            return function(d){
+              return d[1];
+            }
+          }
         },
 
         /**
@@ -535,11 +573,13 @@ For more advanced configuration examples please look into demo source.
          * @return {Array}
          */
         getXs: function(){
-          var me = this;
+          if(!this.data || !this.data.length){
+            return [];
+          }
+          var me = this, getter;
           return d3.merge(me.metadata.map(function(dataset){
-            return me.data.map(function(d){
-              return me.getX(dataset, d);
-            });
+            getter = me.getXgetter(dataset);
+            return me.data.map(getter);
           }));
         },
 
@@ -551,15 +591,17 @@ For more advanced configuration examples please look into demo source.
          * @return {Array}
          */
         getYs: function(axisName){
+          if(!this.data || !this.data.length){
+            return [];
+          }
           axisName = axisName || this.axes[1].name;
-          var me = this,
+          var me = this, getter,
             datasets = me.metadata.filter(function(dataset){
               return dataset.axis === axisName;
             });
           return d3.merge(datasets.map(function(dataset){
-            return me.data.map(function(d){
-              return me.getY(dataset, d);
-            });
+            getter = me.getYgetter(dataset);
+            return me.data.map(getter);
           }));
         }
       });

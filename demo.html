@@ -32,6 +32,9 @@
   #margin {
     max-width: 250px;
   }
+  #attrs > div {
+    height: 100%;
+  }
 </style>
 <template id="app" is="auto-binding">
   <d3-line-chart id="chartDemo" class="{{ {massive: theme } | tokenList }}"
@@ -49,7 +52,7 @@
      margin="{{ margin }}"
      responsive?="{{ responsive }}" flex></d3-line-chart>
   <div id="controls" layout vertical>
-    <div layout horizontal>
+    <div id="attrs" layout horizontal>
       <div><input type="button" value="chart.prepare()" on-tap="{{ prepare }}"></div>
       <div id="range" layout horizontal>
         <template if="{{ !domain }}">
@@ -235,11 +238,6 @@
       chart.name = 'Perceptron proficiency and input weights over time';
       chart.metadata = [
         {
-          label: 'proficiency',
-          axis: 'proficiency',
-          y: 'proficiency'
-        },
-        {
           label: 'weight1',
           axis: 'weights',
           y: function (d) {
@@ -280,6 +278,11 @@
           y: function (d) {
             return d.weights[5];
           }
+        },
+        {
+          label: 'proficiency',
+          axis: 'proficiency',
+          y: 'proficiency'
         }
       ];
       chart.axes = [
