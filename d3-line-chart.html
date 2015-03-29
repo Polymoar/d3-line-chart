@@ -327,17 +327,17 @@ For more advanced configuration examples please look into demo source.
           svg.attr('width', bounds.width);
           svg.attr('height', bounds.height);
 
-          //calculate size of chart draw area
-          var margin = me.margin || {},
-            width = bounds.width - margin.left - margin.right,
-            height = bounds.height - margin.top - margin.bottom,
-            xAxis = me.axes[0];
-
           //margin secure
+          var margin = me.margin || {};
           margin.top = (isNaN(margin.top)) ? 10 : +margin.top;
           margin.right = (isNaN(margin.right)) ? 60 : +margin.right;
           margin.bottom = (isNaN(margin.bottom)) ? 60 : +margin.bottom;
           margin.left = (isNaN(margin.left)) ? 60 : +margin.left;
+
+          //calculate size of chart draw area
+          var width = bounds.width - margin.left - margin.right,
+            height = bounds.height - margin.top - margin.bottom,
+            xAxis = me.axes[0];
 
           //define scale for x axis and y axes and apply configuration
           var _scale, scale, scaleType;
