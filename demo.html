@@ -12,7 +12,7 @@
 
 <body unresolved fullbleed layout vertical>
 <style>
-  #chart {
+  #chartDemo {
     min-width: 600px;
     min-height: 500px;
   }
@@ -22,9 +22,12 @@
   #controls div {
     padding: 5px;
   }
+  #controls select {
+    width: 100%;
+  }
 </style>
 <template id="app" is="auto-binding">
-  <d3-line-chart id="chart" class="{{ {massive: theme } | tokenList }}"
+  <d3-line-chart id="chartDemo" class="{{ {massive: theme } | tokenList }}"
      name="{{ name }}"
      axes="{{ axes }}"
      metadata="{{ metadata }}"
@@ -51,8 +54,9 @@
           <th>Subject</th>
           <th>Name</th>
           <th>Label</th>
-          <th>Scale</th>
           <th>Interpolation</th>
+          <th>Scale</th>
+          <th>Scale config</th>
         </tr>
         <tr>
           <td>chart</td>
@@ -62,45 +66,78 @@
             </div>
           </td>
           <td>
-            <select value="{{ scale }}">
+            <select value="{{ interpolation }}">
               <option value="">undefined</option>
-              <template repeat="{{ s in scales }}">
-                <option value="{{ s.type }}">{{s.type}}</option>
+              <template repeat="{{ i in interpolations }}">
+                <option value="{{ i }}">{{ i }}</option>
               </template>
             </select>
           </td>
           <td>
-            <select value="{{ interpolation }}">
+            <select value="{{ scale }}">
               <option value="">undefined</option>
-              <template repeat="{{ inter in interpolations }}">
-                <option value="{{ inter }}">{{inter}}</option>
+              <template repeat="{{ s in scales }}">
+                <option value="{{ s }}">{{ s }}</option>
               </template>
             </select>
+          </td>
+          <td>
+            <template if="{{ scaleOptions[scale] }}">
+              {{ scaleOptions[scale] }}
+            </template>
           </td>
         </tr>
         <template repeat="{{ axis, key in axes }}">
           <tr>
             <td>{{ {"x axis": key == 0, "y0 axis": key == 1, "y1 axis": key ==2} | tokenList }}</td>
-            <td><input type="text" value="{{ axis.name }}" disabled></td>
+            <td><input type="text" value="{{ axis.name }}"></td>
             <td><input type="text" value="{{ axis.label }}"></td>
             <td>
-              <select value="{{ axis.scale }}">
+              <select value="{{ axis.interpolation }}" disabled?="{{ !key }}">
                 <option value="">undefined</option>
-                <template repeat="{{ s in scales }}">
-                  <option value="{{ s.type }}">{{s.type}}</option>
+                <template repeat="{{ i in interpolations }}">
+                  <option value="{{ i }}">{{ i }}</option>
                 </template>
               </select>
             </td>
             <td>
-              <template if="{{ key }}">
-                <select value="{{ axis.interpolation }}">
-                  <option value="">undefined</option>
-                  <template repeat="{{ inter in interpolations }}">
-                    <option value="{{ inter }}">{{inter}}</option>
-                  </template>
-                </select>
+              <select value="{{ axis.scale }}">
+                <option value="">undefined</option>
+                <template repeat="{{ s in scales }}">
+                  <option value="{{ s }}">{{ s }}</option>
+                </template>
+              </select>
+            </td>
+            <td>
+              <template if="{{ scaleOptions[axis.scale] }}">
+                {{ scaleOptions[axis.scale] }}
               </template>
             </td>
+          </tr>
+        </template>
+        <tr>
+          <th>Series</th>
+          <th>Axis</th>
+          <th>Label</th>
+          <th>Interpolation</th>
+          <th>X</th>
+          <th>Y</th>
+        </tr>
+        <template repeat="{{ series, i in metadata }}">
+          <tr>
+            <td>#{{ i }}</td>
+            <td><input type="text" value="{{ series.axis }}"></td>
+            <td><input type="text" value="{{ series.label }}"></td>
+            <td>
+              <select value="{{ series.interpolation }}">
+                <option value="">undefined</option>
+                <template repeat="{{ inter in interpolations }}">
+                  <option value="{{ inter }}">{{inter}}</option>
+                </template>
+              </select>
+            </td>
+            <td>{{ { undefined: !series.x, function: typeof(series.x) == 'function' } | tokenList}}</td>
+            <td>{{ { undefined: !series.y, function: typeof(series.y) == 'function' } | tokenList}}</td>
           </tr>
         </template>
       </table>
@@ -121,14 +158,27 @@
         'monotone'
       ];
       chart.scales = [
-        { type: 'linear' },
-        { type: 'time' },
-        { type: 'pow', option: 'exponent' },
-        { type: 'sqrt' },
-        { type: 'log', option: 'base' }
+        'linear',
+        'time',
+        'pow',
+        'sqrt',
+        'log',
+        'quantize',
+        'quantile',
+        'threshold'
       ];
+      chart.scaleOptions = {
+        pow: 'exponent',
+        log: 'base',
+        quantize: 'domain, range',
+        quantile: 'domain*, range*',
+        threshold: 'domain, range'
+      };
       chart.prepare = function(){
-        document.querySelector('#chart').prepare();
+        document.querySelector('#chartDemo').prepare();
+      };
+      chart.typeof = function(o){
+        return typeof(o);
       };
       chart.name = 'Perceptron proficiency and input weights over time';
       chart.metadata = [

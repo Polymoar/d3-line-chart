@@ -74,10 +74,11 @@ For more advanced configuration examples please look into demo source.
     </div>
   </template>
   <script>
-    (function(){
+    (function(d3){
       /* TODO:
        * - configurable svg (line & axis colors and widths etc) ?
        * - refactor everything :D
+       * - fix getting x, y in each call of .map to use of one time generated getter -> huge amount of unnecessary operations done there
        */
       Polymer({
 
@@ -223,7 +224,7 @@ For more advanced configuration examples please look into demo source.
             reflect: true
           },
           /**
-           * The `exact` attribute if set disables broadening chart y axes range which is applied for better display of data series close to range extremes.
+           * The `exact` attribute if set disables broadening axes range which is applied for better display of data series close to range extremes.
            *
            * @attribute exact
            * @type boolean
@@ -423,7 +424,7 @@ For more advanced configuration examples please look into demo source.
             .attr('id', 'cp' + me.uid)
             .append('rect')
             .attr('width', width)
-            //height & translate manipulation for proper exact display
+            //height & translate manipulation for proper display
             .attr('height', height + 4)
             .attr('transform', 'translate(0 ,-2)');
 
@@ -438,10 +439,16 @@ For more advanced configuration examples please look into demo source.
                   if(axis.range && axis.range.length === 2){ //if axis has predefined range
                     axis._scale.domain(axis.range);
                   }else{
-                    //find y range for all data in axis
+                    //set y domain for all data in axis
                     range = d3.extent(me.getYs(axis.name));
-                    epsilon = (!me.exact) ? (range[1] - range[0]) * 0.02 : 0; //if allowed broaden range for nicer looks
-                    axis._scale.domain([range[0] - epsilon, range[1] + epsilon]);
+                    if(!me.exact){
+                      epsilon = (range[1] - range[0]) * 0.02;
+                      range = [range[0], range[1] + epsilon];
+                    }
+                    axis._scale.domain(range);
+                    if(!me.exact && typeof(axis._scale.nice) === 'function'){
+                      axis._scale.nice();
+                    }
                   }
                 }else{
                   if(me.range){ //if user defined specific range
@@ -525,6 +532,6 @@ For more advanced configuration examples please look into demo source.
           }));
         }
       });
-    })();
+    })(window.d3);
   </script>
 </polymer-element>
