@@ -78,9 +78,6 @@ For more advanced configuration examples please look into demo source.
       /* TODO:
        * - configurable svg (line & axis colors and widths etc) ?
        * - refactor everything :D
-       * - fix y label display to match margin
-       * - nice for axes ?
-       * - rename range to domain ?
        */
       Polymer({
 
@@ -101,7 +98,7 @@ For more advanced configuration examples please look into demo source.
            *    name: String (required)
            *    label: String
            *    scale: String or Object - scale of axis, defaults to scale attribute value
-           *    range: Array - domain of axis (if not specified covers all data)
+           *    domain: Array - domain of axis (if not specified covers all data)
            *    interpolation: String - mode of line interpolation for axis, defaults to interpolation attribute value
            *    ticks: Number or Object
            *      Number - approximate number of ticks to display
@@ -124,8 +121,14 @@ For more advanced configuration examples please look into demo source.
            *    label: String (recommended if `legend` attribute set)
            *    axis: String - name of axis the series belongs to, if not set defaults to 'yAxis'
            *    interpolation: String - mode of line interpolation for series, defaults to axis.interpolation
-           *    x: function(record) - function getting x from record
-           *    y: function(record) - function getting y from record (required if `data` contains objects)
+           *    grid: boolean - enable or disable grid lines for axis, defaults to grid attribute value
+           *    nice: boolean - enable or disable domain smoothing for axis, defaults to nice attribute value
+           *    x: String or function()
+           *      String - sets x getter to function(record){ return record[x]; }
+           *      function(record) - function getting x from record
+           *    y: String or function(record)
+           *      String - sets x getter function(record){ return record[y]; }
+           *      function(record) - function getting y from record (required if `data` contains objects)
            * }, ...]
            * ```
            * Note that first element of array is drawn with lowest 'z-index'
@@ -178,11 +181,11 @@ For more advanced configuration examples please look into demo source.
           /**
            * X domain of the chart. If not specified covers all data
            *
-           * @attribute range
+           * @attribute domain
            * @type Array
            * @default null
            */
-          range: null,
+          domain: null,
           /**
            * Default scale mode for axes
            * #### Possible values:
@@ -215,6 +218,8 @@ For more advanced configuration examples please look into demo source.
           /**
            * The `responsive` attribute if set enables triggering chart size adjustment after resize.
            *
+           * Known bug: breaks chart during resize on Firefox, fix pending.
+           *
            * @attribute responsive
            * @type boolean
            * @default false
@@ -235,7 +240,8 @@ For more advanced configuration examples please look into demo source.
             reflect: true
           },
           /**
-           * The `nice` attribute if set enables broadening axes range which is applied for better display of data series close to range extremes.
+           * The `nice` attribute if set enables broadening axes domain which is applied for better display of data close to range extremes.
+           * Can be overwritten in specific axis.
            *
            * @attribute nice
            * @type boolean
@@ -246,7 +252,7 @@ For more advanced configuration examples please look into demo source.
             reflect: true
           },
           /**
-           * The `grid` attribute if set enables grid display on axes that didn't defined own setting
+           * The `grid` attribute if set enables grid display on axes that didn't defined own setting.
            *
            * @attribute grid
            * @type boolean
@@ -291,7 +297,7 @@ For more advanced configuration examples please look into demo source.
           axes: 'prepare',
           grid: 'prepare',
           data: 'redraw',
-          range: 'redraw',
+          domain: 'redraw',
           nice: 'redraw'
         },
 
@@ -435,13 +441,13 @@ For more advanced configuration examples please look into demo source.
 
           //append labels to svg
           if(xAxis.label){
-            labels.append('text').attr('y', margin.top + height + margin.bottom).attr('x', margin.left + (width / 2)).attr('dy', '-1em').style('text-anchor', 'middle').text(xAxis.label);
+            labels.append('text').attr('y', margin.top + height + margin.bottom).attr('x', margin.left + width/2).attr('dy', '-1em').style('text-anchor', 'middle').text(xAxis.label);
           }
           if(yAxis.label){
-            labels.append('text').attr('transform', 'rotate(90)').attr('y', 0).attr('x', height/2).attr('dy', '-1em').style('text-anchor', 'middle').text(yAxis.label);
+            labels.append('text').attr('transform', 'rotate(90)').attr('y', 0).attr('x', margin.top + height/2).attr('dy', '-1em').style('text-anchor', 'middle').text(yAxis.label);
           }
           if(y1Axis.label){
-            labels.append('text').attr('transform', 'rotate(-90)').attr('y', width + margin.right + margin.left).attr('x', 0 - (height/2)).attr('dy', '-1em').style('text-anchor', 'middle').text(y1Axis.label);
+            labels.append('text').attr('transform', 'rotate(-90)').attr('y', width + margin.right + margin.left).attr('x', margin.top - height/2).attr('dy', '-1em').style('text-anchor', 'middle').text(y1Axis.label);
           }
 
           //append lines to svg
@@ -462,28 +468,29 @@ For more advanced configuration examples please look into demo source.
           me.redraw = function(){
 
             //setting domains
-            var range, epsilon;
+            var domain, epsilon, nice;
             me.axes.forEach(function(axis, key){
+              nice = axis.nice || (axis.nice === undefined && me.nice);
               if(key > 0){
-                if(axis.range && axis.range.length === 2){ //if axis has predefined range
-                  axis._scale.domain(axis.range);
+                if(axis.domain){ //if axis has predefined domain
+                  axis._scale.domain(axis.domain);
                 }else{
                   //set y domain for all data in axis
-                  range = d3.extent(me.getYs(axis.name));
-                  if(me.nice){
-                    epsilon = (range[1] - range[0]) * 0.02;
-                    range = [range[0] - epsilon, range[1] + epsilon];
+                  domain = d3.extent(me.getYs(axis.name));
+                  if(nice){
+                    epsilon = (domain[1] - domain[0]) * 0.02;
+                    domain = [domain[0] - epsilon, domain[1] + epsilon];
                   }
-                  axis._scale.domain(range);
-                  if(me.nice && typeof(axis._scale.nice) === 'function'){
+                  axis._scale.domain(domain);
+                  if(nice && typeof(axis._scale.nice) === 'function'){
                     axis._scale.nice();
                   }
                 }
               }else{
                 //set predefined x domain or cover all x
-                range = me.range || axis.range;
-                range = (range && range.length === 2) ? range : d3.extent(me.getXs());
-                axis._scale.domain(range);
+                domain = me.domain || axis.domain;
+                domain = (domain) ? domain : d3.extent(me.getXs());
+                axis._scale.domain(domain);
               }
             });
 

@@ -18,7 +18,7 @@
   }
   #controls {
     min-width: 800px;
-    padding: 10px;
+    margin: 10px;
   }
   #controls div {
     padding: 5px;
@@ -35,6 +35,9 @@
   #attrs > div {
     height: 100%;
   }
+  #comment {
+    min-height: 50px;
+  }
 </style>
 <template id="app" is="auto-binding">
   <d3-line-chart id="chartDemo" class="{{ {massive: theme } | tokenList }}"
@@ -42,7 +45,7 @@
      axes="{{ axes }}"
      metadata="{{ metadata }}"
      data="{{ data }}"
-     range="{{ range }}"
+     domain="{{ domain }}"
      interpolation="{{ interpolation }}"
      scale="{{ scale }}"
      grid?="{{ grid }}"
@@ -56,12 +59,12 @@
       <div><input type="button" value="chart.prepare()" on-tap="{{ prepare }}"></div>
       <div id="range" layout horizontal>
         <template if="{{ !domain }}">
-          <input type="button" value="Set range" on-tap="{{ setRange }}">
+          <input type="button" value="Set domain" on-tap="{{ setRange }}">
         </template>
         <template if="{{ domain }}">
-          <input type="button" value="Unset range" on-tap="{{ unsetRange }}">
-          <input type="text" value="{{ range[0] }}" flex>
-          <input type="text" value="{{ range[1] }}" flex>
+          <input type="button" value="Unset domain" on-tap="{{ unsetRange }}">
+          <input type="text" value="{{ domain[0] }}" flex>
+          <input type="text" value="{{ domain[1] }}" flex>
         </template>
       </div>
       <div>Responsive <input type="checkbox" checked="{{ responsive }}"></div>
@@ -81,25 +84,51 @@
       </div>
       <span flex></span>
     </div>
-    <div>
-      <table>
+    <table>
+      <tr>
+        <th>Subject</th>
+        <th>Name</th>
+        <th>Label</th>
+        <th>Interpolation</th>
+        <th>Scale</th>
+        <th>Scale config</th>
+      </tr>
+      <tr>
+        <td>chart</td>
+        <td colspan="2">
+          <div layout horizontal style="padding: 0;">
+            <input type="text" value="{{ name }}" flex>
+          </div>
+        </td>
+        <td>
+          <select value="{{ interpolation }}">
+            <option value="">undefined</option>
+            <template repeat="{{ i in interpolations }}">
+              <option value="{{ i }}">{{ i }}</option>
+            </template>
+          </select>
+        </td>
+        <td>
+          <select value="{{ scale }}">
+            <option value="">undefined</option>
+            <template repeat="{{ s in scales }}">
+              <option value="{{ s }}">{{ s }}</option>
+            </template>
+          </select>
+        </td>
+        <td>
+          <template if="{{ scaleOptions[scale] }}">
+            {{ scaleOptions[scale] }}
+          </template>
+        </td>
+      </tr>
+      <template repeat="{{ axis, key in axes }}">
         <tr>
-          <th>Subject</th>
-          <th>Name</th>
-          <th>Label</th>
-          <th>Interpolation</th>
-          <th>Scale</th>
-          <th>Scale config</th>
-        </tr>
-        <tr>
-          <td>chart</td>
-          <td colspan="2">
-            <div layout horizontal style="padding: 0;">
-              <input type="text" value="{{ name }}" flex>
-            </div>
-          </td>
+          <td>{{ {"x axis": key == 0, "y0 axis": key == 1, "y1 axis": key ==2} | tokenList }}</td>
+          <td><input type="text" value="{{ axis.name }}"></td>
+          <td><input type="text" value="{{ axis.label }}"></td>
           <td>
-            <select value="{{ interpolation }}">
+            <select value="{{ axis.interpolation }}" disabled?="{{ !key }}">
               <option value="">undefined</option>
               <template repeat="{{ i in interpolations }}">
                 <option value="{{ i }}">{{ i }}</option>
@@ -107,7 +136,7 @@
             </select>
           </td>
           <td>
-            <select value="{{ scale }}">
+            <select value="{{ axis.scale }}">
               <option value="">undefined</option>
               <template repeat="{{ s in scales }}">
                 <option value="{{ s }}">{{ s }}</option>
@@ -115,88 +144,66 @@
             </select>
           </td>
           <td>
-            <template if="{{ scaleOptions[scale] }}">
-              {{ scaleOptions[scale] }}
+            <template if="{{ scaleOptions[axis.scale] }}">
+              {{ scaleOptions[axis.scale] }}
             </template>
           </td>
         </tr>
-        <template repeat="{{ axis, key in axes }}">
-          <tr>
-            <td>{{ {"x axis": key == 0, "y0 axis": key == 1, "y1 axis": key ==2} | tokenList }}</td>
-            <td><input type="text" value="{{ axis.name }}"></td>
-            <td><input type="text" value="{{ axis.label }}"></td>
-            <td>
-              <select value="{{ axis.interpolation }}" disabled?="{{ !key }}">
-                <option value="">undefined</option>
-                <template repeat="{{ i in interpolations }}">
-                  <option value="{{ i }}">{{ i }}</option>
-                </template>
-              </select>
-            </td>
-            <td>
-              <select value="{{ axis.scale }}">
-                <option value="">undefined</option>
-                <template repeat="{{ s in scales }}">
-                  <option value="{{ s }}">{{ s }}</option>
-                </template>
-              </select>
-            </td>
-            <td>
-              <template if="{{ scaleOptions[axis.scale] }}">
-                {{ scaleOptions[axis.scale] }}
-              </template>
-            </td>
-          </tr>
-        </template>
+      </template>
+      <tr>
+        <th>Series</th>
+        <th>Axis</th>
+        <th>Label</th>
+        <th>Interpolation</th>
+        <th>X</th>
+        <th>Y</th>
+      </tr>
+      <template repeat="{{ series, i in metadata }}">
         <tr>
-          <th>Series</th>
-          <th>Axis</th>
-          <th>Label</th>
-          <th>Interpolation</th>
-          <th>X</th>
-          <th>Y</th>
+          <td>#{{ i }}</td>
+          <td><input type="text" value="{{ series.axis }}"></td>
+          <td><input type="text" value="{{ series.label }}"></td>
+          <td>
+            <select value="{{ series.interpolation }}">
+              <option value="">undefined</option>
+              <template repeat="{{ inter in interpolations }}">
+                <option value="{{ inter }}">{{inter}}</option>
+              </template>
+            </select>
+          </td>
+          <td>
+            <template if="{{ typeof(series.x) == 'function' }}">
+              {{ typeof(series.x) }}
+            </template>
+            <template if="{{ typeof(series.x) == 'string' || typeof(series.x) == 'undefined' }}">
+              <input type="text" value="{{ series.x }}" placeholder="undefined">
+            </template>
+          </td>
+          <td>
+            <template if="{{ typeof(series.y) == 'function' }}">
+              {{ typeof(series.y) }}
+            </template>
+            <template if="{{ typeof(series.y) == 'string' || typeof(series.y) == 'undefined' }}">
+              <input type="text" value="{{ series.y }}" placeholder="undefined">
+            </template>
+          </td>
         </tr>
-        <template repeat="{{ series, i in metadata }}">
-          <tr>
-            <td>#{{ i }}</td>
-            <td><input type="text" value="{{ series.axis }}"></td>
-            <td><input type="text" value="{{ series.label }}"></td>
-            <td>
-              <select value="{{ series.interpolation }}">
-                <option value="">undefined</option>
-                <template repeat="{{ inter in interpolations }}">
-                  <option value="{{ inter }}">{{inter}}</option>
-                </template>
-              </select>
-            </td>
-            <td>
-              <template if="{{ typeof(series.x) == 'function' }}">
-                {{ typeof(series.x) }}
-              </template>
-              <template if="{{ typeof(series.x) == 'string' || typeof(series.x) == 'undefined' }}">
-                <input type="text" value="{{ series.x }}" placeholder="undefined">
-              </template>
-            </td>
-            <td>
-              <template if="{{ typeof(series.y) == 'function' }}">
-                {{ typeof(series.y) }}
-              </template>
-              <template if="{{ typeof(series.y) == 'string' || typeof(series.y) == 'undefined' }}">
-                <input type="text" value="{{ series.y }}" placeholder="undefined">
-              </template>
-            </td>
-          </tr>
-        </template>
-      </table>
+      </template>
+    </table>
+    <div>
+      <p>
+        Note that this is only part of possibilities of element and it is presented on a specific set of data (if you want to try more feel free to use dev console).
+        Also you don't need to use such complicated configuration, basic one requires only `data` attribute set with records as 2 element arrays (data = [[x1,y1],[x2,y2],...]).
+      </p>
     </div>
   </div>
 </template>
 
   <script>
     window.addEventListener('polymer-ready', function(e) {
-      var chart = window.chart = document.querySelector('#app');
-      chart.responsive = true;
-      chart.interpolations = [
+      var demo = window.chart = document.querySelector('#app');
+      demo.responsive = true;
+      demo.interpolations = [
         'linear', 'linear-closed',
         'step', 'step-before', 'step-after',
         'basis', 'basis-open', 'basis-closed',
@@ -204,7 +211,7 @@
         'cardinal', 'cardinal-open', 'cardinal-closed',
         'monotone'
       ];
-      chart.scales = [
+      demo.scales = [
         'linear',
         'time',
         'pow',
@@ -214,29 +221,27 @@
         'quantile',
         'threshold'
       ];
-      chart.scaleOptions = {
+      demo.scaleOptions = {
         pow: 'exponent',
         log: 'base',
         quantize: 'domain, range',
         quantile: 'domain*, range*',
         threshold: 'domain, range'
       };
-      chart.prepare = function(){
+      demo.prepare = function(){
         document.querySelector('#chartDemo').prepare();
       };
-      chart.setRange = function(){
-        chart.range = [1, 10];
-        chart.domain = true;
+      demo.setRange = function(){
+        demo.domain = [1, 10];
       };
-      chart.unsetRange = function(){
-        chart.range = null;
-        chart.domain = false;
+      demo.unsetRange = function(){
+        demo.domain = null;
       };
-      chart.typeof = function(o){
+      demo.typeof = function(o){
         return typeof(o);
       };
-      chart.name = 'Perceptron proficiency and input weights over time';
-      chart.metadata = [
+      demo.name = 'Perceptron proficiency and input weights over time';
+      demo.metadata = [
         {
           label: 'weight1',
           axis: 'weights',
