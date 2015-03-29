@@ -27,6 +27,13 @@ svg {
   stroke-width: 1px;
   shape-rendering: crispEdges; }
 
+.grid .tick {
+  stroke: lightgrey;
+  stroke-width: 1;
+  shape-rendering: crispEdges; }
+.grid path {
+  visibility: hidden; }
+
 :host-context(.massive) .line {
   stroke-width: 2px; }
 :host-context(.massive) path, :host-context(.massive) line {

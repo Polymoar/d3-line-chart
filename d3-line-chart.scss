@@ -38,6 +38,18 @@ svg {
   }
 }
 
+.grid {
+  .tick {
+    stroke: lightgrey;
+    stroke-width: 1;
+    shape-rendering: crispEdges;
+  }
+
+  path {
+    visibility: hidden;
+  }
+}
+
 :host-context(.massive){
   .line {
     stroke-width: 2px;

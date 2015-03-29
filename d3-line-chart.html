@@ -247,6 +247,17 @@ For more advanced configuration examples please look into demo source.
             reflect: true
           },
           /**
+           * The `grid` attribute if set enables grid display on axes that didn't defined own setting
+           *
+           * @attribute grid
+           * @type boolean
+           * @default false
+           */
+          grid: {
+            value: false,
+            reflect: true
+          },
+          /**
            * The `legend` attribute if set enables legend display.
            *
            * @attribute legend
@@ -279,6 +290,7 @@ For more advanced configuration examples please look into demo source.
           interpolation: 'prepare',
           margin: 'prepare',
           axes: 'prepare',
+          grid: 'prepare',
           data: 'redraw',
           range: 'redraw',
           nice: 'redraw'
@@ -314,7 +326,7 @@ For more advanced configuration examples please look into demo source.
           svg.selectAll('*').remove();
 
           //if no config present abandon preparation
-          if(!me.axes || !me.metadata){
+          if((!me.axes  || me.axes.length < 2) || !me.metadata){
             return false;
           }
 
@@ -337,7 +349,9 @@ For more advanced configuration examples please look into demo source.
           //calculate size of chart draw area
           var width = bounds.width - margin.left - margin.right,
             height = bounds.height - margin.top - margin.bottom,
-            xAxis = me.axes[0];
+            xAxis = me.axes[0],
+            yAxis = me.axes[1],
+            y1Axis = me.axes[2];
 
           //define scale for x axis and y axes and apply configuration
           var _scale, scale, scaleType;
@@ -380,57 +394,54 @@ For more advanced configuration examples please look into demo source.
           });
 
           //settle axes orientation and ticks
-          var axisOrientation,
-            _axis, ticks,
-            orientation = [
-              'bottom',
-              'left',
-              'right'
-            ];
+          var axisOrientation, orientations = ['bottom', 'left', 'right'];
           me.axes.forEach(function(axis, key){
-            axisOrientation = orientation[key];
-            ticks = axis.ticks;
-            if(axisOrientation){
-              _axis = axis._axis = d3.svg.axis().scale(axis._scale).orient(axisOrientation);
-            }
-            if(typeof(ticks) ===  'number'){
-              _axis.ticks(ticks);
-            }else if(typeof(ticks) === 'object'){
-              var option;
-              for(option in ticks){
-                if(ticks.hasOwnProperty(option) && typeof(_axis[option]) === 'function'){
-                  _axis[option](ticks[option]);
-                }
-              }
+            axisOrientation = orientations[key];
+            axis._axis = d3.svg.axis().scale(axis._scale).orient(axisOrientation);
+            applyTicks(axis._axis, axis.ticks);
+            if(axis.grid || (axis.grid === undefined && me.grid)){
+              axis._grid = d3.svg.axis().scale(axis._scale).orient(axisOrientation).tickFormat("");
+              applyTicks(axis._grid, axis.ticks);
+            }else{
+              axis._grid = undefined;
             }
           });
 
           //create svg groups
-          var focus = svg.append('g').attr('class', 'focus').attr('transform', 'translate(' + margin.left + ',' + margin.top + ')').attr('clip-path', 'url(#cp' + me.uid + ')'),
-            axes = svg.append('g').attr('class', 'axes').attr('transform', 'translate(' + margin.left + ',' + margin.top + ')'),
+          var chart = svg.append('g').attr('class', 'display').attr('transform', 'translate(' + margin.left + ',' + margin.top + ')'),
+            grid = chart.append('g').attr('class', 'grid').attr('opacity', '0.7'),
+            focus = chart.append('g').attr('class', 'focus').attr('clip-path', 'url(#cp' + me.uid + ')'),
+            axes = chart.append('g').attr('class', 'axes'),
             labels = svg.append('g').attr('class', 'labels');
 
-          //append axes and labels to svg
-          me.axes.forEach(function(axis, key){
-            _axis = axes.append('g');
-            if(key === 0){
-              _axis.attr('class', 'x axis').attr('transform', 'translate(0,' + height + ')');
-              if(axis.label){
-                labels.append('text').attr('y', margin.top + height + margin.bottom).attr('x', margin.left + (width / 2)).attr('dy', '-1em').style('text-anchor', 'middle').text(axis.label);
-              }
-            }else if(key < 3){
-              _axis.attr('class', 'y axis ' + axis.name);
-              if(key === 2){
-                _axis.attr('transform', 'translate(' + width + ' ,0)');
-                if(axis.label){
-                  labels.append('text').attr('transform', 'rotate(-90)').attr('y', width + margin.right + margin.left).attr('x', 0 - (height/2)).attr('dy', '-1em').style('text-anchor', 'middle').text(axis.label);
-                }
-              }else if(axis.label){
-                labels.append('text').attr('transform', 'rotate(90)').attr('y', 0).attr('x', height/2).attr('dy', '-1em').style('text-anchor', 'middle').text(axis.label);
-              }
-            }
-            _axis.call(axis._axis);
-          });
+          //append grids to svg
+          if(xAxis._grid){
+            grid.append("g").attr('class', 'x grid ' + xAxis.name).attr("transform", "translate(0," + height + ")").call(xAxis._grid.tickSize(-height, 0, 0));
+          }
+          if(yAxis._grid){
+            grid.append("g").attr('class', 'y grid ' + yAxis.name).call(yAxis._grid.tickSize(-width, 0, 0));
+          }
+          if(y1Axis && y1Axis._grid){
+            grid.append("g").attr('class', 'y grid ' + y1Axis.name).attr('transform', 'translate(' + width + ' ,0)').call(y1Axis._grid.tickSize(-width, 0, 0));
+          }
+
+          //append axes to svg
+          axes.append('g').attr('class', 'x axis ' + xAxis.name).attr('transform', 'translate(0,' + height + ')').call(xAxis._axis);
+          axes.append('g').attr('class', 'y axis ' + yAxis.name).call(yAxis._axis);
+          if(y1Axis){
+            axes.append('g').attr('class', 'y axis ' + y1Axis.name).attr('transform', 'translate(' + width + ' ,0)').call(y1Axis._axis);
+          }
+
+          //append labels to svg
+          if(xAxis.label){
+            labels.append('text').attr('y', margin.top + height + margin.bottom).attr('x', margin.left + (width / 2)).attr('dy', '-1em').style('text-anchor', 'middle').text(xAxis.label);
+          }
+          if(yAxis.label){
+            labels.append('text').attr('transform', 'rotate(90)').attr('y', 0).attr('x', height/2).attr('dy', '-1em').style('text-anchor', 'middle').text(yAxis.label);
+          }
+          if(y1Axis.label){
+            labels.append('text').attr('transform', 'rotate(-90)').attr('y', width + margin.right + margin.left).attr('x', 0 - (height/2)).attr('dy', '-1em').style('text-anchor', 'middle').text(y1Axis.label);
+          }
 
           //append lines to svg
           lines.forEach(function(line, i){
@@ -448,44 +459,48 @@ For more advanced configuration examples please look into demo source.
 
           //create redraw function
           me.redraw = function(){
-            if(me.data){
 
-              //setting domains
-              var range, epsilon;
-              me.axes.forEach(function(axis, key){
-                if(key > 0){
-                  if(axis.range && axis.range.length === 2){ //if axis has predefined range
-                    axis._scale.domain(axis.range);
-                  }else{
-                    //set y domain for all data in axis
-                    range = d3.extent(me.getYs(axis.name));
-                    if(me.nice){
-                      epsilon = (range[1] - range[0]) * 0.02;
-                      range = [range[0] - epsilon, range[1] + epsilon];
-                    }
-                    axis._scale.domain(range);
-                    if(me.nice && typeof(axis._scale.nice) === 'function'){
-                      axis._scale.nice();
-                    }
-                  }
+            //setting domains
+            var range, epsilon;
+            me.axes.forEach(function(axis, key){
+              if(key > 0){
+                if(axis.range && axis.range.length === 2){ //if axis has predefined range
+                  axis._scale.domain(axis.range);
                 }else{
-                  //set predefined x domain or cover all x
-                  range = me.range || axis.range;
-                  range = (range && range.length === 2) ? range : d3.extent(me.getXs());
+                  //set y domain for all data in axis
+                  range = d3.extent(me.getYs(axis.name));
+                  if(me.nice){
+                    epsilon = (range[1] - range[0]) * 0.02;
+                    range = [range[0] - epsilon, range[1] + epsilon];
+                  }
                   axis._scale.domain(range);
+                  if(me.nice && typeof(axis._scale.nice) === 'function'){
+                    axis._scale.nice();
+                  }
                 }
-              });
+              }else{
+                //set predefined x domain or cover all x
+                range = me.range || axis.range;
+                range = (range && range.length === 2) ? range : d3.extent(me.getXs());
+                axis._scale.domain(range);
+              }
+            });
 
-              //update lines
-              lines.forEach(function(line, i){
-                focus.select('.line.l' + i).datum(me.data).transition().attr('d', line);
-              });
-            }
+            //update grids
+            me.axes.forEach(function(axis){
+              if(axis._grid){
+                grid.select('.grid.' + axis.name).transition().call(axis._grid);
+              }
+            });
 
             //update axes
-            axes.select('.x.axis').transition().call(xAxis._axis);
             me.axes.forEach(function(axis){
-              axes.select('.y.axis.' + axis.name).transition().call(axis._axis);
+              axes.select('.axis.' + axis.name).transition().call(axis._axis);
+            });
+
+            //update lines
+            lines.forEach(function(line, i){
+              focus.select('.line.l' + i).datum(me.data).transition().attr('d', line);
             });
           };
 
@@ -548,6 +563,20 @@ For more advanced configuration examples please look into demo source.
           }));
         }
       });
+
+      //helpers
+      function applyTicks(_axis, ticks){ //helper for applying ticks to axis or grid
+        if(typeof(ticks) ===  'number'){
+          _axis.ticks(ticks);
+        }else if(typeof(ticks) === 'object'){
+          var option;
+          for(option in ticks){
+            if(ticks.hasOwnProperty(option) && typeof(_axis[option]) === 'function'){
+              _axis[option](ticks[option]);
+            }
+          }
+        }
+      }
     })(window.d3);
   </script>
 </polymer-element>

@@ -42,6 +42,7 @@
      range="{{ range }}"
      interpolation="{{ interpolation }}"
      scale="{{ scale }}"
+     grid?="{{ grid }}"
      legend?="{{ legend }}"
      nice?="{{ nice }}"
      vertical?="{{ vertical }}"
@@ -63,6 +64,7 @@
       <div>Responsive <input type="checkbox" checked="{{ responsive }}"></div>
       <div>Themed <input type="checkbox" checked="{{ theme }}"></div>
       <div>Nice <input type="checkbox" checked="{{ nice }}"></div>
+      <div>Grid <input type="checkbox" checked="{{ grid }}"></div>
       <div>Legend <input type="checkbox" checked="{{ legend }}"></div>
       <template if="{{ legend }}">
         <div>Vertical <input type="checkbox" checked="{{ vertical }}"></div>
@@ -236,9 +238,6 @@
           label: 'proficiency',
           axis: 'proficiency',
           y: 'proficiency'
-//            function (d) {
-//            return 100 * d.proficiency;
-//          }
         },
         {
           label: 'weight1',
