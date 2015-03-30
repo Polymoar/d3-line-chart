@@ -46,25 +46,25 @@ For more advanced configuration examples please look into demo source.
 @status alpha
 @homepage https://github.com/Polymoar/d3-line-chart
 -->
-<polymer-element name='d3-line-chart'>
+<polymer-element name="d3-line-chart">
   <template>
-    <link rel='stylesheet' href='d3-line-chart.css'>
-    <div id='container' fit layout vertical>
-      <template if='{{ name }}'>
-        <div id='title'>{{ name }}</div>
+    <link rel="stylesheet" href="d3-line-chart.css">
+    <div id="container" fit layout vertical>
+      <template if="{{ name }}">
+        <div id="title">{{ name }}</div>
       </template>
-      <div flex layout vertical?='{{ vertical }}' horizontal?='{{ !vertical }}'>
-        <div id='chart' flex>
-          <svg id='paper'></svg>
-          <template if='{{ responsive }}'>
-            <px10-element-resize-detector target='{{ }}' on-resize='{{ prepare }}'></px10-element-resize-detector>
+      <div flex layout vertical?="{{ vertical }}" horizontal?="{{ !vertical }}">
+        <div id="chart" flex>
+          <svg id="paper"></svg>
+          <template if="{{ responsive }}">
+            <px10-element-resize-detector target="{{ }}" on-resize="{{ prepare }}"></px10-element-resize-detector>
           </template>
         </div>
-        <template if='{{ legend }}'>
-          <div id='legend' vertical?='{{ vertical }}'>
-            <template repeat='{{ dataset in metadata }}'>
-              <div class='entry'>
-                <core-icon icon='label'></core-icon>
+        <template if="{{ legend }}">
+          <div id="legend" vertical?="{{ vertical }}">
+            <template repeat="{{ dataset in metadata }}">
+              <div class="entry">
+                <core-icon icon="label"></core-icon>
                 <span>{{ dataset.label }}</span>
               </div>
             </template>

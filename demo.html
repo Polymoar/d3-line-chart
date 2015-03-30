@@ -50,7 +50,7 @@
      margin="{{ margin }}"
      responsive?="{{ responsive }}" flex></d3-line-chart>
   <div id="controls">
-    <div id="attrs" layout horizontal>
+    <div id="attrs" layout horizontal wrap style="width: 100%">
       <div><input type="button" value="chart.prepare()" on-tap="{{ prepare }}"></div>
       <div id="range" layout horizontal>
         <template if="{{ !domain }}">
