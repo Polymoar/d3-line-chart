@@ -20,9 +20,6 @@
     min-width: 800px;
     margin: 10px;
   }
-  #controls div {
-    padding: 5px;
-  }
   #controls select {
     width: 100%;
   }
@@ -33,10 +30,8 @@
     max-width: 250px;
   }
   #attrs > div {
+    padding: 5px;
     height: 100%;
-  }
-  #comment {
-    min-height: 50px;
   }
 </style>
 <template id="app" is="auto-binding">
@@ -54,7 +49,7 @@
      vertical?="{{ vertical }}"
      margin="{{ margin }}"
      responsive?="{{ responsive }}" flex></d3-line-chart>
-  <div id="controls" layout vertical>
+  <div id="controls">
     <div id="attrs" layout horizontal>
       <div><input type="button" value="chart.prepare()" on-tap="{{ prepare }}"></div>
       <div id="range" layout horizontal>
