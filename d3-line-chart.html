@@ -57,7 +57,7 @@ For more advanced configuration examples please look into demo source.
         <div id="chart" flex>
           <svg id="paper"></svg>
           <template if="{{ responsive }}">
-            <px10-element-resize-detector target="{{ }}" on-resize="{{ prepare }}"></px10-element-resize-detector>
+            <px10-element-resize-detector target="{{ }}" on-resize="{{ resize }}"></px10-element-resize-detector>
           </template>
         </div>
         <template if="{{ legend }}">
@@ -322,10 +322,14 @@ For more advanced configuration examples please look into demo source.
          * @method prepare
          * @return {boolean} Returns true if succeeded, otherwise false.
          */
-        prepare: function(){
+        prepare: function(svg, width, height){
           var me = this,
+            xAxis = me.axes[0],
+            yAxis = me.axes[1],
+            y1Axis = me.axes[2],
             bounds = me.$.chart.getBoundingClientRect(),
-            svg = d3.select(me.$.paper);
+            external = !!svg;
+            svg = (svg) ? d3.select(svg) : d3.select(me.$.paper);
 
           //clear svg
           svg.selectAll('*').remove();
@@ -335,15 +339,6 @@ For more advanced configuration examples please look into demo source.
             return false;
           }
 
-          //if element is not visible abandon preparation
-          if(!bounds.width || !bounds.height){
-            return false;
-          }
-
-          //update svg size to match component
-          svg.attr('width', bounds.width);
-          svg.attr('height', bounds.height);
-
           //margin secure
           var margin = me.margin || {};
           margin.top = (isNaN(margin.top)) ? 10 : +margin.top;
@@ -351,12 +346,27 @@ For more advanced configuration examples please look into demo source.
           margin.bottom = (isNaN(margin.bottom)) ? 60 : +margin.bottom;
           margin.left = (isNaN(margin.left)) ? 60 : +margin.left;
 
-          //calculate size of chart draw area
-          var width = bounds.width - margin.left - margin.right,
-            height = bounds.height - margin.top - margin.bottom,
-            xAxis = me.axes[0],
-            yAxis = me.axes[1],
-            y1Axis = me.axes[2];
+          //update svg size to match component and find size of draw area
+          if((!me.initialized || me.responsive) && !external){
+            if(!bounds.width || !bounds.height){ //if element is not visible abandon preparation
+              return false;
+            }
+            width = bounds.width - margin.left - margin.right;
+            height = bounds.height - margin.top - margin.bottom;
+            svg.attr('width', bounds.width);
+            svg.attr('height', bounds.height);
+            me.initialized = true;
+          }else{
+            if(width && height){
+              svg.attr('width', width);
+              svg.attr('height', height);
+              width = width - margin.left - margin.right;
+              height = height - margin.top - margin.bottom;
+            }else{
+              width = svg.attr('width') - margin.left - margin.right;
+              height = svg.attr('height') - margin.top - margin.bottom;
+            }
+          }
 
           //define scale for x axis and y axes and apply configuration
           var _scale, scale, scaleType;
@@ -465,7 +475,7 @@ For more advanced configuration examples please look into demo source.
             .attr('transform', 'translate(0 ,-2)');
 
           //create redraw function
-          me.redraw = function(){
+          var redraw = function(){
 
             //setting domains
             var domain, epsilon, nice;
@@ -512,8 +522,13 @@ For more advanced configuration examples please look into demo source.
             });
           };
 
+          //if not external svg update redraw
+          if(!external){
+            me.redraw = redraw;
+          }
+
           //do first redraw
-          me.redraw();
+          redraw();
 
           //return success
           return true;
@@ -526,6 +541,11 @@ For more advanced configuration examples please look into demo source.
          */
         redraw: function(){
           //placeholder
+        },
+
+        //helper for responsiveness
+        resize: function(){
+          this.prepare();
         },
 
         //helpers
