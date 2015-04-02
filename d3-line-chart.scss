@@ -67,7 +67,7 @@ svg {
     stroke: adjust-hue($start_color, ($i - 1)*36);
   }
 
-  #legend .entry:nth-child(12n+#{$i + 1}) core-icon {
+  #legend .entry:nth-child(10n+#{$i + 1}) core-icon {
     color: adjust-hue($start_color, ($i - 1)*36);
   }
 }

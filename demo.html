@@ -196,7 +196,8 @@
 
   <script>
     window.addEventListener('polymer-ready', function(e) {
-      var demo = window.chart = document.querySelector('#app');
+      window.demo = document.querySelector('#app');
+      window.chart = document.querySelector('#chartDemo');
       demo.responsive = true;
       demo.interpolations = [
         'linear', 'linear-closed',
@@ -285,7 +286,7 @@
           y: 'proficiency'
         }
       ];
-      chart.axes = [
+      demo.axes = [
         {
           name: 'xAxis',
           label: 'Generation'
@@ -300,7 +301,7 @@
           interpolation: 'step'
         }
       ];
-      chart.data = [
+      demo.data = [
         {"weights": [0, 0, 0, 0, 0, 0], "proficiency": 0.1428571428571429},
         {
           "weights": [-0.07753994913198259, -0.6283040694255813, -0.5, 1.0249481071728672, 0.025816013120731562, 0.6474074383747217],
