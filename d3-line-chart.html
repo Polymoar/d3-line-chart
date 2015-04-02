@@ -58,7 +58,7 @@ For more advanced configuration examples please look into demo source.
           <div id="chart" flex>
             <svg id="paper"></svg>
             <template if="{{ responsive }}">
-              <px10-element-resize-detector target="{{ }}" on-resize="{{ resize }}"></px10-element-resize-detector>
+              <px10-element-resize-detector target="{{ }}" on-resize="{{ refresh }}"></px10-element-resize-detector>
             </template>
           </div>
           <template if="{{ legend }}">
