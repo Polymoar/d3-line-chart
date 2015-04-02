@@ -49,35 +49,38 @@ For more advanced configuration examples please look into demo source.
 <polymer-element name="d3-line-chart">
   <template>
     <link rel="stylesheet" href="d3-line-chart.css">
-    <div id="container" fit layout vertical>
-      <template if="{{ name }}">
-        <div id="title">{{ name }}</div>
-      </template>
-      <div flex layout vertical?="{{ vertical }}" horizontal?="{{ !vertical }}">
-        <div id="chart" flex>
-          <svg id="paper"></svg>
-          <template if="{{ responsive }}">
-            <px10-element-resize-detector target="{{ }}" on-resize="{{ resize }}"></px10-element-resize-detector>
-          </template>
-        </div>
-        <template if="{{ legend }}">
-          <div id="legend" vertical?="{{ vertical }}">
-            <template repeat="{{ dataset in metadata }}">
-              <div class="entry">
-                <core-icon icon="label"></core-icon>
-                <span>{{ dataset.label }}</span>
-              </div>
+    <template if="{{ !factory }}">
+      <div id="container" fit layout vertical>
+        <template if="{{ name }}">
+          <div id="title">{{ name }}</div>
+        </template>
+        <div flex layout vertical?="{{ vertical }}" horizontal?="{{ !vertical }}">
+          <div id="chart" flex>
+            <svg id="paper"></svg>
+            <template if="{{ responsive }}">
+              <px10-element-resize-detector target="{{ }}" on-resize="{{ resize }}"></px10-element-resize-detector>
             </template>
           </div>
-        </template>
+          <template if="{{ legend }}">
+            <div id="legend" vertical?="{{ vertical }}">
+              <template repeat="{{ dataset in metadata }}">
+                <div class="entry">
+                  <core-icon icon="label"></core-icon>
+                  <span>{{ dataset.label }}</span>
+                </div>
+              </template>
+            </div>
+          </template>
+        </div>
       </div>
-    </div>
+    </template>
   </template>
   <script>
     (function(d3, undefined){
       /* TODO:
        * - configurable svg (line & axis colors and widths etc) ?
        * - refactor everything :D
+       * - save method
        */
       Polymer({
 
@@ -285,17 +288,28 @@ For more advanced configuration examples please look into demo source.
            * @type Object
            * @default null
            */
-          margin: null
+          margin: null,
+          /**
+           * The `factory` attribute if set disables display of chart which simplifies using it as svg factory.
+           *
+           * @attribute factory
+           * @type boolean
+           * @default false
+           */
+          factory: {
+            value: false,
+            reflect: true
+          }
         },
 
         //watchers
         observe: {
-          metadata: 'prepare',
-          scale: 'prepare',
-          interpolation: 'prepare',
-          margin: 'prepare',
-          axes: 'prepare',
-          grid: 'prepare',
+          metadata: 'refresh',
+          scale: 'refresh',
+          interpolation: 'refresh',
+          margin: 'refresh',
+          axes: 'refresh',
+          grid: 'refresh',
           data: 'redraw',
           domain: 'redraw',
           nice: 'redraw'
@@ -304,13 +318,14 @@ For more advanced configuration examples please look into demo source.
         //lifecycle
         ready: function(){
           var me = this;
-          me.uid = ('0000' + (Math.random()*Math.pow(36,4) << 0).toString(36)).slice(-4); //required because of svg clip paths overlapping
+          me.uid = me.newUID(); //required because of svg clip paths overlapping
           me.margin = me.margin || { top: 10, right: 60, bottom: 60, left: 60};
           me.axes = me.axes || [
             { name: 'xAxis' },
             { name: 'yAxis' }
           ];
           me.metadata = me.metadata || [{ axis: 'yAxis' }];
+          me.colors = ['#ff0000', '#ff9900', '#ccff00', '#33ff00', '#00ff66', '#00ffff', '#0066ff', '#3300ff', '#cc00ff', '#ff0099'];
         },
         domReady: function(){
           this.prepare();
@@ -322,16 +337,29 @@ For more advanced configuration examples please look into demo source.
          * @method prepare
          * @return {boolean} Returns true if succeeded, otherwise false.
          */
-        prepare: function(svg, width, height){
+        prepare: function(width, height, target){
           var me = this,
             xAxis = me.axes[0],
             yAxis = me.axes[1],
             y1Axis = me.axes[2],
             bounds = me.$.chart.getBoundingClientRect(),
-            external = !!svg;
-            svg = (svg) ? d3.select(svg) : d3.select(me.$.paper);
+            external = (width && height),
+            uid = (external) ? me.newUID() : me.uid,
+            svg;
 
-          //clear svg
+          //select target svg
+          if(external){
+            if(target){
+              svg = (target.nodeName === 'SVG') ? d3.select(target) : d3.select(target).append('svg');
+            }else{
+              svg = d3.select(document.createElement('svg'));
+            }
+          }else{
+            svg = d3.select(me.$.paper);
+          }
+
+          //clear svg and ensure namespace
+          svg.attr('version', '1.1').attr('xmlns', 'http://www.w3.org/2000/svg');
           svg.selectAll('*').remove();
 
           //if no config present abandon preparation
@@ -427,7 +455,7 @@ For more advanced configuration examples please look into demo source.
           //create svg groups
           var chart = svg.append('g').attr('class', 'display').attr('transform', 'translate(' + margin.left + ',' + margin.top + ')'),
             grid = chart.append('g').attr('class', 'grid').attr('opacity', '0.7'),
-            focus = chart.append('g').attr('class', 'focus').attr('clip-path', 'url(#cp' + me.uid + ')'),
+            focus = chart.append('g').attr('class', 'focus').attr('clip-path', 'url(#cp' + uid + ')'),
             axes = chart.append('g').attr('class', 'axes'),
             labels = svg.append('g').attr('class', 'labels');
 
@@ -467,7 +495,7 @@ For more advanced configuration examples please look into demo source.
 
           //append clipping path to svg
           svg.append('defs').append('clipPath')
-            .attr('id', 'cp' + me.uid)
+            .attr('id', 'cp' + uid)
             .append('rect')
             .attr('width', width)
             //height & translate manipulation for proper display
@@ -476,9 +504,9 @@ For more advanced configuration examples please look into demo source.
 
           //create redraw function
           var redraw = function(){
+            var domain, epsilon, nice;
 
             //setting domains
-            var domain, epsilon, nice;
             me.axes.forEach(function(axis, key){
               nice = axis.nice || (axis.nice === undefined && me.nice);
               if(key > 0){
@@ -522,16 +550,25 @@ For more advanced configuration examples please look into demo source.
             });
           };
 
-          //if not external svg update redraw
-          if(!external){
-            me.redraw = redraw;
-          }
-
           //do first redraw
           redraw();
 
-          //return success
-          return true;
+          //if not external svg update redraw
+          if(!external){
+            me.redraw = redraw;
+          }else{ //if external apply styles as attributes
+            svg.select('.focus').attr('fill', 'none').attr('stroke-width', '1px').attr('shape-rendering', 'geometricPrecision');
+            svg.selectAll('.line').attr('stroke', function(d, key){ return me.colors[key]; });
+            svg.selectAll('.axis path, .axis line').attr('fill', 'none').attr('stroke', '#818181').attr('stroke-width', '1px').attr('shape-rendering', 'crispEdges');
+            svg.selectAll('.grid .tick').attr('stroke', 'lightgrey').attr('stroke-width', '1px').attr('shape-rendering', 'crispEdges');
+            svg.selectAll('.grid path').attr('visibility', 'hidden');
+            if(!me.factory){
+              me.prepare();
+            }
+          }
+
+          //return svg
+          return svg.node();
         },
 
         /**
@@ -543,8 +580,8 @@ For more advanced configuration examples please look into demo source.
           //placeholder
         },
 
-        //helper for responsiveness
-        resize: function(){
+        //proxy for prepare
+        refresh: function(){
           this.prepare();
         },
 
@@ -573,6 +610,7 @@ For more advanced configuration examples please look into demo source.
             }
           }
         },
+
         getYgetter: function(dataset){
           var me = this;
           if(!me.data || !me.data.length){
@@ -591,6 +629,10 @@ For more advanced configuration examples please look into demo source.
               return d[1];
             }
           }
+        },
+
+        newUID: function(){
+          return ('0000' + (Math.random()*Math.pow(36,4) << 0).toString(36)).slice(-4);
         },
 
         /**
