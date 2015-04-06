@@ -310,7 +310,7 @@ For more advanced configuration examples please look into demo source.
           margin: 'refresh',
           axes: 'refresh',
           grid: 'refresh',
-          data: 'redraw',
+          data: 'checkAndRedraw',
           domain: 'redraw',
           nice: 'redraw'
         },
@@ -570,6 +570,9 @@ For more advanced configuration examples please look into demo source.
             }
           }
 
+          //set flag
+          me.prepared = true;
+
           //return svg
           return svg.node();
         },
@@ -586,6 +589,15 @@ For more advanced configuration examples please look into demo source.
         //proxy for prepare
         refresh: function(){
           this.prepare();
+        },
+
+        //checker for redraw
+        checkAndRedraw: function(){
+          if(this.prepared){
+            this.redraw();
+          }else{
+            this.prepare();
+          }
         },
 
         //helpers
@@ -627,10 +639,6 @@ For more advanced configuration examples please look into demo source.
           }else if(dataset.y){
             return function(d){
               return d[dataset.y];
-            }
-          }else if(typeof(sample) === 'number'){
-            return function(d){
-              return d;
             }
           }else{
             return function(d){
