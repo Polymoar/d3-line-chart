@@ -345,6 +345,7 @@ For more advanced configuration examples please look into demo source.
             bounds = me.$.chart.getBoundingClientRect(),
             external = (width && height),
             uid = (external) ? me.newUID() : me.uid,
+            dataPresent = me.data && me.data.length,
             svg;
 
           //select target svg
@@ -417,26 +418,28 @@ For more advanced configuration examples please look into demo source.
 
           //create focus objects configurations
           var lines = [], line;
-          me.metadata.forEach(function(dataset){
-            dataset.axis = dataset.axis || 'yAxis';
-            var getterX, getterY, axis = me.axes.filter(function(axis){
-                return axis.name === dataset.axis;
-              })[0];
+          if(dataPresent){
+            me.metadata.forEach(function(dataset){
+              dataset.axis = dataset.axis || 'yAxis';
+              var getterX, getterY, axis = me.axes.filter(function(axis){
+                  return axis.name === dataset.axis;
+                })[0];
 
-            if(axis){
-              line = d3.svg.line();
-              line.interpolate(dataset.interpolation || axis.interpolation || me.interpolation || 'linear');
-              getterX = me.getXgetter(dataset);
-              line.x(function(d){
-                return xAxis._scale(getterX(d));
-              });
-              getterY = me.getYgetter(dataset);
-              line.y(function(d){
-                return axis._scale(getterY(d));
-              });
-              lines.push(line);
-            }
-          });
+              if(axis){
+                line = d3.svg.line();
+                line.interpolate(dataset.interpolation || axis.interpolation || me.interpolation || 'linear');
+                getterX = me.getXgetter(dataset);
+                line.x(function(d){
+                  return xAxis._scale(getterX(d));
+                });
+                getterY = me.getYgetter(dataset);
+                line.y(function(d){
+                  return axis._scale(getterY(d));
+                });
+                lines.push(line);
+              }
+            });
+          }
 
           //settle axes orientation and ticks
           var axisOrientation, orientations = ['bottom', 'left', 'right'];
@@ -484,7 +487,7 @@ For more advanced configuration examples please look into demo source.
           if(yAxis.label){
             labels.append('text').attr('transform', 'rotate(90)').attr('y', 0).attr('x', margin.top + height/2).attr('dy', '-1em').style('text-anchor', 'middle').text(yAxis.label);
           }
-          if(y1Axis.label){
+          if(y1Axis && y1Axis.label){
             labels.append('text').attr('transform', 'rotate(-90)').attr('y', width + margin.right + margin.left).attr('x', margin.top - height/2).attr('dy', '-1em').style('text-anchor', 'middle').text(y1Axis.label);
           }
 
@@ -514,7 +517,7 @@ For more advanced configuration examples please look into demo source.
                   axis._scale.domain(axis.domain);
                 }else{
                   //set y domain for all data in axis
-                  domain = d3.extent(me.getYs(axis.name));
+                  domain = (dataPresent) ? d3.extent(me.getYs(axis.name)) : [0, 1];
                   if(nice){
                     epsilon = (domain[1] - domain[0]) * 0.02;
                     domain = [domain[0] - epsilon, domain[1] + epsilon];
@@ -527,7 +530,7 @@ For more advanced configuration examples please look into demo source.
               }else{
                 //set predefined x domain or cover all x
                 domain = me.domain || axis.domain;
-                domain = (domain) ? domain : d3.extent(me.getXs());
+                domain = (domain) ? domain : (dataPresent) ? d3.extent(me.getXs()) : [0, 1];
                 axis._scale.domain(domain);
               }
             });
