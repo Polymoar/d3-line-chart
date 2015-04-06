@@ -570,8 +570,10 @@ For more advanced configuration examples please look into demo source.
             }
           }
 
-          //set flag
-          me.prepared = true;
+          //set flag if prepared
+          if(dataPresent){
+            me.prepared = true;
+          }
 
           //return svg
           return svg.node();
