@@ -424,6 +424,9 @@ For more advanced configuration examples please look into demo source.
                 line.y(function(d){
                   return axis._scale(getterY(d));
                 });
+                line.defined(function(d) {
+                  return !isNaN(getterY(d)) && !isNaN(getterX(d));
+                });
                 lines.push(line);
               }
             });
