@@ -15,7 +15,6 @@ Responsive and configurable Polymer element for line charts based on D3.js libra
 (x time scale with 4 ticks and label, y pow scale with exponent 0.10, responsive to size change)
 
     <d3-line-chart flex data='{{ [[Date1,1],[Date2,2],[Date3,3]] }}'
-      title='Test chart'
       axes='{{ [{ name: 'xAxis', scale: 'time', ticks: 4, label: 'Time' },
         { name: 'yAxis', scale: { type: 'pow', exponent: 0.10 } }] }}'
       responsive
@@ -51,9 +50,6 @@ For more advanced configuration examples please look into demo source.
     <link rel="stylesheet" href="d3-line-chart.css">
     <template if="{{ !factory }}">
       <div id="container" fit layout vertical>
-        <template if="{{ name }}">
-          <div id="title">{{ name }}</div>
-        </template>
         <div flex layout vertical?="{{ vertical }}" horizontal?="{{ !vertical }}">
           <div id="chart" flex>
             <svg id="paper"></svg>
@@ -86,14 +82,6 @@ For more advanced configuration examples please look into demo source.
 
         //published attributes
         publish: {
-          /**
-           * Chart title, if not set the title section is hidden
-           *
-           * @attribute name
-           * @type String
-           * @default null
-           */
-          name: null,
           /**
            * Array containing axes configuration. Each axis configuration is an object as described below:
            * ```
@@ -310,7 +298,7 @@ For more advanced configuration examples please look into demo source.
           margin: 'refresh',
           axes: 'refresh',
           grid: 'refresh',
-          data: 'redraw',
+          data: 'checkAndRedraw',
           domain: 'redraw',
           nice: 'redraw'
         },
@@ -319,7 +307,7 @@ For more advanced configuration examples please look into demo source.
         ready: function(){
           var me = this;
           me.uid = me.newUID(); //required because of svg clip paths overlapping
-          me.margin = me.margin || { top: 10, right: 60, bottom: 60, left: 60};
+          me.margin = me.margin || { top: 20, right: 60, bottom: 60, left: 60};
           me.axes = me.axes || [
             { name: 'xAxis' },
             { name: 'yAxis' }
@@ -370,7 +358,7 @@ For more advanced configuration examples please look into demo source.
 
           //margin secure
           var margin = me.margin || {};
-          margin.top = (isNaN(margin.top)) ? 10 : +margin.top;
+          margin.top = (isNaN(margin.top)) ? 20 : +margin.top;
           margin.right = (isNaN(margin.right)) ? 60 : +margin.right;
           margin.bottom = (isNaN(margin.bottom)) ? 60 : +margin.bottom;
           margin.left = (isNaN(margin.left)) ? 60 : +margin.left;
@@ -435,6 +423,9 @@ For more advanced configuration examples please look into demo source.
                 getterY = me.getYgetter(dataset);
                 line.y(function(d){
                   return axis._scale(getterY(d));
+                });
+                line.defined(function(d) {
+                  return !isNaN(getterY(d)) && !isNaN(getterX(d));
                 });
                 lines.push(line);
               }
@@ -502,7 +493,7 @@ For more advanced configuration examples please look into demo source.
             .append('rect')
             .attr('width', width)
             //height & translate manipulation for proper display
-            .attr('height', height + 4)
+            .attr('height', height + 2)
             .attr('transform', 'translate(0 ,-2)');
 
           //create redraw function
@@ -570,6 +561,11 @@ For more advanced configuration examples please look into demo source.
             }
           }
 
+          //set flag if prepared
+          if(dataPresent){
+            me.prepared = true;
+          }
+
           //return svg
           return svg.node();
         },
@@ -586,6 +582,15 @@ For more advanced configuration examples please look into demo source.
         //proxy for prepare
         refresh: function(){
           this.prepare();
+        },
+
+        //checker for redraw
+        checkAndRedraw: function(){
+          if(this.prepared){
+            this.redraw();
+          }else{
+            this.prepare();
+          }
         },
 
         //helpers
@@ -615,10 +620,11 @@ For more advanced configuration examples please look into demo source.
         },
 
         getYgetter: function(dataset){
-          var me = this;
+          var me = this, sample;
           if(!me.data || !me.data.length){
             throw Error('Can\'t sample records, no data');
           }
+          sample = me.data[0];
           if(typeof(dataset.y) === 'function'){
             return function(d){
               return dataset.y(d);
