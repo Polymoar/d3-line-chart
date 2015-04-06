@@ -307,7 +307,7 @@ For more advanced configuration examples please look into demo source.
         ready: function(){
           var me = this;
           me.uid = me.newUID(); //required because of svg clip paths overlapping
-          me.margin = me.margin || { top: 10, right: 60, bottom: 60, left: 60};
+          me.margin = me.margin || { top: 20, right: 60, bottom: 60, left: 60};
           me.axes = me.axes || [
             { name: 'xAxis' },
             { name: 'yAxis' }
@@ -358,7 +358,7 @@ For more advanced configuration examples please look into demo source.
 
           //margin secure
           var margin = me.margin || {};
-          margin.top = (isNaN(margin.top)) ? 10 : +margin.top;
+          margin.top = (isNaN(margin.top)) ? 20 : +margin.top;
           margin.right = (isNaN(margin.right)) ? 60 : +margin.right;
           margin.bottom = (isNaN(margin.bottom)) ? 60 : +margin.bottom;
           margin.left = (isNaN(margin.left)) ? 60 : +margin.left;
