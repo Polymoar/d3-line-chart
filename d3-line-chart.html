@@ -345,6 +345,7 @@ For more advanced configuration examples please look into demo source.
             bounds = me.$.chart.getBoundingClientRect(),
             external = (width && height),
             uid = (external) ? me.newUID() : me.uid,
+            dataPresent = me.data && me.data.length,
             svg;
 
           //select target svg
@@ -417,26 +418,28 @@ For more advanced configuration examples please look into demo source.
 
           //create focus objects configurations
           var lines = [], line;
-          me.metadata.forEach(function(dataset){
-            dataset.axis = dataset.axis || 'yAxis';
-            var getterX, getterY, axis = me.axes.filter(function(axis){
-                return axis.name === dataset.axis;
-              })[0];
+          if(dataPresent){
+            me.metadata.forEach(function(dataset){
+              dataset.axis = dataset.axis || 'yAxis';
+              var getterX, getterY, axis = me.axes.filter(function(axis){
+                  return axis.name === dataset.axis;
+                })[0];
 
-            if(axis){
-              line = d3.svg.line();
-              line.interpolate(dataset.interpolation || axis.interpolation || me.interpolation || 'linear');
-              getterX = me.getXgetter(dataset);
-              line.x(function(d){
-                return xAxis._scale(getterX(d));
-              });
-              getterY = me.getYgetter(dataset);
-              line.y(function(d){
-                return axis._scale(getterY(d));
-              });
-              lines.push(line);
-            }
-          });
+              if(axis){
+                line = d3.svg.line();
+                line.interpolate(dataset.interpolation || axis.interpolation || me.interpolation || 'linear');
+                getterX = me.getXgetter(dataset);
+                line.x(function(d){
+                  return xAxis._scale(getterX(d));
+                });
+                getterY = me.getYgetter(dataset);
+                line.y(function(d){
+                  return axis._scale(getterY(d));
+                });
+                lines.push(line);
+              }
+            });
+          }
 
           //settle axes orientation and ticks
           var axisOrientation, orientations = ['bottom', 'left', 'right'];
@@ -504,8 +507,7 @@ For more advanced configuration examples please look into demo source.
 
           //create redraw function
           var redraw = function(){
-            var domain, epsilon, nice,
-              dataPresent = me.data && me.data.length;
+            var domain, epsilon, nice;
 
             //setting domains
             me.axes.forEach(function(axis, key){
