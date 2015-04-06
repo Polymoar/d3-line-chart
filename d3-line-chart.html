@@ -15,7 +15,6 @@ Responsive and configurable Polymer element for line charts based on D3.js libra
 (x time scale with 4 ticks and label, y pow scale with exponent 0.10, responsive to size change)
 
     <d3-line-chart flex data='{{ [[Date1,1],[Date2,2],[Date3,3]] }}'
-      title='Test chart'
       axes='{{ [{ name: 'xAxis', scale: 'time', ticks: 4, label: 'Time' },
         { name: 'yAxis', scale: { type: 'pow', exponent: 0.10 } }] }}'
       responsive
@@ -51,9 +50,6 @@ For more advanced configuration examples please look into demo source.
     <link rel="stylesheet" href="d3-line-chart.css">
     <template if="{{ !factory }}">
       <div id="container" fit layout vertical>
-        <template if="{{ name }}">
-          <div id="title">{{ name }}</div>
-        </template>
         <div flex layout vertical?="{{ vertical }}" horizontal?="{{ !vertical }}">
           <div id="chart" flex>
             <svg id="paper"></svg>
@@ -86,14 +82,6 @@ For more advanced configuration examples please look into demo source.
 
         //published attributes
         publish: {
-          /**
-           * Chart title, if not set the title section is hidden
-           *
-           * @attribute name
-           * @type String
-           * @default null
-           */
-          name: null,
           /**
            * Array containing axes configuration. Each axis configuration is an object as described below:
            * ```
@@ -502,7 +490,7 @@ For more advanced configuration examples please look into demo source.
             .append('rect')
             .attr('width', width)
             //height & translate manipulation for proper display
-            .attr('height', height + 4)
+            .attr('height', height + 2)
             .attr('transform', 'translate(0 ,-2)');
 
           //create redraw function
