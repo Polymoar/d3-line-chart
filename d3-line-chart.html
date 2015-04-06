@@ -615,10 +615,11 @@ For more advanced configuration examples please look into demo source.
         },
 
         getYgetter: function(dataset){
-          var me = this;
+          var me = this, sample;
           if(!me.data || !me.data.length){
             throw Error('Can\'t sample records, no data');
           }
+          sample = me.data[0];
           if(typeof(dataset.y) === 'function'){
             return function(d){
               return dataset.y(d);
@@ -626,6 +627,10 @@ For more advanced configuration examples please look into demo source.
           }else if(dataset.y){
             return function(d){
               return d[dataset.y];
+            }
+          }else if(typeof(sample) === 'number'){
+            return function(d){
+              return d;
             }
           }else{
             return function(d){
