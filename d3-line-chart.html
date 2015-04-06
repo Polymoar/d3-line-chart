@@ -504,7 +504,8 @@ For more advanced configuration examples please look into demo source.
 
           //create redraw function
           var redraw = function(){
-            var domain, epsilon, nice;
+            var domain, epsilon, nice,
+              dataPresent = me.data && me.data.length;
 
             //setting domains
             me.axes.forEach(function(axis, key){
@@ -514,7 +515,7 @@ For more advanced configuration examples please look into demo source.
                   axis._scale.domain(axis.domain);
                 }else{
                   //set y domain for all data in axis
-                  domain = d3.extent(me.getYs(axis.name));
+                  domain = (dataPresent) ? d3.extent(me.getYs(axis.name)) : [0, 1];
                   if(nice){
                     epsilon = (domain[1] - domain[0]) * 0.02;
                     domain = [domain[0] - epsilon, domain[1] + epsilon];
@@ -527,7 +528,7 @@ For more advanced configuration examples please look into demo source.
               }else{
                 //set predefined x domain or cover all x
                 domain = me.domain || axis.domain;
-                domain = (domain) ? domain : d3.extent(me.getXs());
+                domain = (domain) ? domain : (dataPresent) ? d3.extent(me.getXs()) : [0, 1];
                 axis._scale.domain(domain);
               }
             });
