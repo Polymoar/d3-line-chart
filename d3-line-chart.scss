@@ -4,6 +4,7 @@ $start_color: red;
   position: relative;
   overflow: hidden;
   display: block;
+  height: 400px; //default height as suggested in issue#1
 }
 
 #legend .entry {

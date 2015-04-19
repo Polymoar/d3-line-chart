@@ -1,8 +1,8 @@
 :host {
   position: relative;
   overflow: hidden;
-  display: block; }
-
+  display: block;
+  height: 400px; }
 
 #legend .entry {
   padding: 5px; }
