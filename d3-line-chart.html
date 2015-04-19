@@ -9,18 +9,18 @@
 Responsive and configurable Polymer element for line charts based on D3.js library.
 
 #### Basic usage example
-    <d3-line-chart data='{{ [[1,2],[2,4],[3,8],[4,16]] }}' flex></d3-line-chart>
+    <d3-line-chart data="{{ [[1,2],[2,4],[3,8],[4,16]] }}"></d3-line-chart>
 
 #### More advanced configuration
 (x time scale with 4 ticks and label, y pow scale with exponent 0.10, responsive to size change)
 
-    <d3-line-chart flex data='{{ [[Date1,1],[Date2,2],[Date3,3]] }}'
-      axes='{{ [{ name: 'xAxis', scale: 'time', ticks: 4, label: 'Time' },
-        { name: 'yAxis', scale: { type: 'pow', exponent: 0.10 } }] }}'
+    <d3-line-chart data="{{ [[Date1,1],[Date2,2],[Date3,3]] }}"
+      axes="{{ [{ name: 'xAxis', scale: 'time', ticks: 4, label: 'Time' },
+        { name: 'yAxis', scale: { type: 'pow', exponent: 0.10 } }] }}"
       responsive
     ></d3-line-chart>
 
-For more advanced configuration examples please look into demo source.
+For more advanced configuration examples please look into component page and demo source.
 
 #### Styling
   - set chart's width & height by css or add it to layout (you can use flex attribute on it)
@@ -28,7 +28,6 @@ For more advanced configuration examples please look into demo source.
 
 #### Comments
   - after changes inside specific axis or metadata configuration you will need to trigger prepare() for changes to take place
-  - you need to set chart's dimensions (at least min width/height) or put it into layout for it to display
 
 #### Roadmap for next releases
   - save to file
@@ -268,7 +267,7 @@ For more advanced configuration examples please look into demo source.
            * Object with settings for default svg margins override
            * #### Properties:
            *  - `top` - default 10
-           *  - `right` - default 60
+           *  - `right` - default 20 (or 60 if there are 3 axes)
            *  - `bottom` - default 60
            *  - `left` - default 60
            *
@@ -307,22 +306,27 @@ For more advanced configuration examples please look into demo source.
         ready: function(){
           var me = this;
           me.uid = me.newUID(); //required because of svg clip paths overlapping
-          me.margin = me.margin || { top: 20, right: 60, bottom: 60, left: 60};
           me.axes = me.axes || [
             { name: 'xAxis' },
             { name: 'yAxis' }
           ];
           me.metadata = me.metadata || [{ axis: 'yAxis' }];
-          me.colors = ['#ff0000', '#ff9900', '#ccff00', '#33ff00', '#00ff66', '#00ffff', '#0066ff', '#3300ff', '#cc00ff', '#ff0099'];
+          me.colors = me.colors || ['#ff0000', '#ff9900', '#ccff00', '#33ff00', '#00ff66', '#00ffff', '#0066ff', '#3300ff', '#cc00ff', '#ff0099'];
         },
         domReady: function(){
           this.prepare();
         },
 
         /**
-         * The `prepare()` method recreates chart with updated configuration attributes & size.
+         * The `prepare([width, height, target])` method recreates chart with updated configuration attributes & size.
+         * You can also use it to create svg node of desired width/height & current configuration by passing width and height.
+         * If you add target parameter created svg will be appended to target node or chart will be written to it (if it is SVG node).
+         * You can also pass target node as a css selector.
          *
          * @method prepare
+         * @param {int} width
+         * @param {int} height
+         * @param {String} target
          * @return {boolean} Returns true if succeeded, otherwise false.
          */
         prepare: function(width, height, target){
@@ -359,7 +363,7 @@ For more advanced configuration examples please look into demo source.
           //margin secure
           var margin = me.margin || {};
           margin.top = (isNaN(margin.top)) ? 20 : +margin.top;
-          margin.right = (isNaN(margin.right)) ? 60 : +margin.right;
+          margin.right = (!isNaN(margin.right)) ? +margin.right : (me.axes.length < 3) ? 20 : 60;
           margin.bottom = (isNaN(margin.bottom)) ? 60 : +margin.bottom;
           margin.left = (isNaN(margin.left)) ? 60 : +margin.left;
 
