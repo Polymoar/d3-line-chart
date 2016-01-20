@@ -1,0 +1,101 @@
+<!-- imports --><html><head><link rel="import" href="../../polymer/polymer.html">
+<link rel="import" href="../../lib-d3/lib-d3.html">
+<link rel="import" href="../../iron-flex-layout/iron-flex-layout.html">
+<link rel="import" href="../../iron-resizable-behavior/iron-resizable-behavior.html">
+
+<!--
+Responsive and configurable Polymer element for line charts based on D3.js library.
+
+#### Basic usage example
+    <d3-line-chart data="{{ [[1,2],[2,4],[3,8],[4,16]] }}"></d3-line-chart>
+
+#### More advanced configuration
+(x time scale with 4 ticks and label, y pow scale with exponent 0.10, responsive to size change)
+
+    <d3-line-chart data="{{ [[Date1,1],[Date2,2],[Date3,3]] }}"
+      axes="{{ [{ name: 'xAxis', scale: 'time', ticks: 4, label: 'Time' },
+        { name: 'yAxis', scale: { type: 'pow', exponent: 0.10 } }] }}"
+    ></d3-line-chart>
+
+For more advanced configuration examples please look into component page and demo source.
+
+#### Styling
+  - set chart's width & height by css or add it to layout (you can use it with flexbox)
+  - chart is ready for external styling
+
+#### Comments
+  - after changes inside specific axis or metadata configuration you will need to trigger prepare() for changes to take place
+
+#### Roadmap for next releases
+  - save to file
+  - configurable lines and colors
+  - hover series details
+  - d3-chart element with other chart types
+
+#### Licence
+[BSD 2 Clause](https://opensource.org/licenses/BSD-2-Clause) © [Błażej Wolańczyk](https://github.com/Junikorn)
+
+@element d3-line-chart
+@demo http://polymoar.github.io/components/d3-line-chart/demo/index.html
+@blurb Responsive and configurable Polymer element for line charts based on D3.js library.
+@homepage https://github.com/Polymoar/d3-line-chart
+-->
+</head><body><dom-module id="d3-line-chart">
+    <template>
+        <style>
+            :host {
+                position: relative;
+                overflow: hidden;
+                display: block;
+                height: 400px;
+            }
+
+            svg {
+                max-width: 100%;
+                max-height: 100%;
+            }
+
+            .focus > .line:nth-child(10n+1) {
+                stroke: red;
+            }
+
+            .focus > .line:nth-child(10n+2) {
+                stroke: #ff9900;
+            }
+
+            .focus > .line:nth-child(10n+3) {
+                stroke: #ccff00;
+            }
+
+            .focus > .line:nth-child(10n+4) {
+                stroke: #33ff00;
+            }
+
+            .focus > .line:nth-child(10n+5) {
+                stroke: #00ff66;
+            }
+
+            .focus > .line:nth-child(10n+6) {
+                stroke: cyan;
+            }
+
+            .focus > .line:nth-child(10n+7) {
+                stroke: #0066ff;
+            }
+
+            .focus > .line:nth-child(10n+8) {
+                stroke: #3300ff;
+            }
+
+            .focus > .line:nth-child(10n+9) {
+                stroke: #cc00ff;
+            }
+
+            .focus > .line:nth-child(10n+0) {
+                stroke: #ff0099;
+            }
+        </style>
+        <svg id="paper"></svg>
+    </template>
+    <script src="d3-line-chart.js"></script>
+</dom-module></body></html>
