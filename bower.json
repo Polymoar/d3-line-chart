@@ -1,12 +1,10 @@
 {
   "name": "d3-line-chart",
-  "version": "0.5.7",
-  "homepage": "https://github.com/Polymoar/d3-line-chart",
+  "description": "Configurable Polymer element for line charts based on D3.js library",
+  "private": false,
   "authors": [
-    "Junikorn <blazejwolanczyk@gmail.com>"
+    "Błażej Wolańczyk <blazejwolanczyk@gmail.com>"
   ],
-  "description": "Responsive and configurable Polymer element for line charts based on D3.js library.",
-  "main": "d3-line-chart.html",
   "keywords": [
     "web-components",
     "polymer",
@@ -14,22 +12,25 @@
     "chart",
     "d3"
   ],
-  "license": "MIT",
-  "ignore": [
-    "**/.*",
-    "node_modules",
-    "bower_components",
-    "test",
-    "tests"
-  ],
+  "main": "js-behaviors.html",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/Junikorn/d3-line-chart.git"
+  },
+  "license": "BSD-2-Clause",
+  "homepage": "https://github.com/Junikorn/d3-line-chart",
+  "ignore": [],
   "dependencies": {
-    "polymer": "Polymer/polymer#~0.5.5",
-    "core-icons": "Polymer/core-icons#~0.5.5",
-    "core-icon": "Polymer/core-icon#~0.5.5",
+    "promise-polyfill": "polymerlabs/promise-polyfill#^1.0.0",
+    "polymer": "Polymer/polymer#^1.2.1",
     "lib-d3": "Polymoar/lib-d3#~3.5.5",
-    "px10-node-resize-detector": "PX10/px10-element-resize-detector#~0.0.1"
+    "iron-resizable-behavior": "PolymerElements/iron-resizable-behavior#~1.0.2",
+    "iron-flex-layout": "PolymerElements/iron-flex-layout#~1.2.2"
   },
   "devDependencies": {
-    "web-component-tester": "*"
+    "iron-component-page": "polymerelements/iron-component-page#^1.0.0",
+    "test-fixture": "polymerelements/test-fixture#^1.0.0",
+    "web-component-tester": "*",
+    "webcomponentsjs": "webcomponents/webcomponentsjs#^0.7.0"
   }
 }
