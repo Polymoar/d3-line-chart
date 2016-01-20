@@ -1,201 +1,190 @@
 <!doctype html>
-<html lang="">
-
-<head>
-  <meta charset="utf-8">
-  <meta name="description" content="">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>d3-line-chart demo</title>
-  <script src="../webcomponentsjs/webcomponents.js"></script>
-  <link rel="import" href="d3-line-chart.html">
-</head>
-
-<body unresolved fullbleed layout vertical>
-<style>
-  #chartDemo {
-    min-width: 600px;
-    min-height: 500px;
-  }
-  #controls {
-    min-width: 800px;
-    margin: 10px;
-  }
-  #controls select {
-    width: 100%;
-  }
-  #range {
-    max-width: 200px;
-  }
-  #margin {
-    max-width: 250px;
-  }
-  #attrs > div {
-    padding: 5px;
-    height: 100%;
-  }
-</style>
-<template id="app" is="auto-binding">
-  <d3-line-chart id="chartDemo" class="{{ {massive: theme } | tokenList }}"
-     name="{{ name }}"
-     axes="{{ axes }}"
-     metadata="{{ metadata }}"
-     data="{{ data }}"
-     domain="{{ domain }}"
-     interpolation="{{ interpolation }}"
-     scale="{{ scale }}"
-     grid?="{{ grid }}"
-     legend?="{{ legend }}"
-     nice?="{{ nice }}"
-     vertical?="{{ vertical }}"
-     margin="{{ margin }}"
-     responsive?="{{ responsive }}" flex></d3-line-chart>
-  <div id="controls">
-    <div id="attrs" layout horizontal wrap style="width: 100%">
-      <div><input type="button" value="chart.prepare()" on-tap="{{ prepare }}"></div>
-      <div id="range" layout horizontal>
-        <template if="{{ !domain }}">
-          <input type="button" value="Set domain" on-tap="{{ setRange }}">
-        </template>
-        <template if="{{ domain }}">
-          <input type="button" value="Unset domain" on-tap="{{ unsetRange }}">
-          <input type="text" value="{{ domain[0] }}" flex>
-          <input type="text" value="{{ domain[1] }}" flex>
-        </template>
-      </div>
-      <div>Responsive <input type="checkbox" checked="{{ responsive }}"></div>
-      <div>Themed <input type="checkbox" checked="{{ theme }}"></div>
-      <div>Nice <input type="checkbox" checked="{{ nice }}"></div>
-      <div>Grid <input type="checkbox" checked="{{ grid }}"></div>
-      <div>Legend <input type="checkbox" checked="{{ legend }}"></div>
-      <template if="{{ legend }}">
-        <div>Vertical <input type="checkbox" checked="{{ vertical }}"></div>
-      </template>
-      <div id="margin" layout horizontal>
-        Margin&nbsp;
-        <input type="text" value="{{ margin.top }}" flex>
-        <input type="text" value="{{ margin.right }}" flex>
-        <input type="text" value="{{ margin.bottom }}" flex>
-        <input type="text" value="{{ margin.left }}" flex>
-      </div>
-      <span flex></span>
-    </div>
-    <table>
-      <tr>
-        <th>Subject</th>
-        <th>Name</th>
-        <th>Label</th>
-        <th>Interpolation</th>
-        <th>Scale</th>
-        <th>Scale config</th>
-      </tr>
-      <tr>
-        <td>chart</td>
-        <td colspan="2">
-          <div layout horizontal style="padding: 0;">
-            <input type="text" value="{{ name }}" flex>
-          </div>
-        </td>
-        <td>
-          <select value="{{ interpolation }}">
-            <option value="">undefined</option>
-            <template repeat="{{ i in interpolations }}">
-              <option value="{{ i }}">{{ i }}</option>
-            </template>
-          </select>
-        </td>
-        <td>
-          <select value="{{ scale }}">
-            <option value="">undefined</option>
-            <template repeat="{{ s in scales }}">
-              <option value="{{ s }}">{{ s }}</option>
-            </template>
-          </select>
-        </td>
-        <td>
-          <template if="{{ scaleOptions[scale] }}">
-            {{ scaleOptions[scale] }}
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+    <title>Demo</title>
+    <script src="../../webcomponentsjs/webcomponents-lite.min.js"></script>
+    <link rel="import" href="../es5/d3-line-chart.html">
+  </head>
+  <body unresolved>
+  <style>
+    #chartDemo {
+      min-width: 600px;
+      min-height: 500px;
+    }
+    #controls {
+      min-width: 800px;
+      margin: 10px;
+    }
+    #controls select {
+      width: 100%;
+    }
+    #range {
+      max-width: 200px;
+    }
+    #margin {
+      max-width: 250px;
+    }
+    #attrs > div {
+      padding: 5px;
+      height: 100%;
+    }
+  </style>
+  <template id="app" is="dom-bind">
+    <d3-line-chart id="chartDemo"
+                   name="{{name}}"
+                   axes="{{axes}}"
+                   metadata="{{metadata}}"
+                   data="{{data}}"
+                   domain="{{domain}}"
+                   interpolation="{{interpolation}}"
+                   scale="{{scale}}"
+                   grid="{{grid}}"
+                   legend="{{legend}}"
+                   nice="{{nice}}"
+                   margin="{{margin}}"></d3-line-chart>
+    <div id="controls">
+      <div id="attrs" wrap style="width: 100%">
+        <div><input type="button" value="chart.prepare()" on-tap="prepare"></div>
+        <div id="range"  >
+          <template is="dom-if" if="{{!domain}}">
+            <input type="button" value="Set domain" on-tap="setRange">
           </template>
-        </td>
-      </tr>
-      <template repeat="{{ axis, key in axes }}">
+          <template is="dom-if" if="{{domain}}">
+            <input type="button" value="Unset domain" on-tap="unsetRange">
+            <input type="text" value="{{domain.start}}">
+            <input type="text" value="{{domain.end}}">
+          </template>
+        </div>
+        <div>Nice <input type="checkbox" checked="{{nice::click}}"></div>
+        <div>Grid <input type="checkbox" checked="{{grid::click}}"></div>
+        <div id="margin">
+          Margin&nbsp;
+          <input type="text" value="{{margin.top}}">
+          <input type="text" value="{{margin.right}}">
+          <input type="text" value="{{margin.bottom}}">
+          <input type="text" value="{{margin.left}}">
+        </div>
+        <span ></span>
+      </div>
+      <table>
         <tr>
-          <td>{{ {"x axis": key == 0, "y0 axis": key == 1, "y1 axis": key ==2} | tokenList }}</td>
-          <td><input type="text" value="{{ axis.name }}"></td>
-          <td><input type="text" value="{{ axis.label }}"></td>
+          <th>Subject</th>
+          <th>Name</th>
+          <th>Label</th>
+          <th>Interpolation</th>
+          <th>Scale</th>
+          <th>Scale config</th>
+        </tr>
+        <tr>
+          <td>chart</td>
+          <td colspan="2">
+            <div style="padding: 0;">
+              <input type="text" value="{{name}}">
+            </div>
+          </td>
           <td>
-            <select value="{{ axis.interpolation }}" disabled?="{{ !key }}">
+            <select value="{{interpolation::change}}">
               <option value="">undefined</option>
-              <template repeat="{{ i in interpolations }}">
-                <option value="{{ i }}">{{ i }}</option>
+              <template is="dom-repeat" items="{{interpolations}}" as="i">
+                <option value="{{i}}">{{i}}</option>
               </template>
             </select>
           </td>
           <td>
-            <select value="{{ axis.scale }}">
+            <select value="{{scale::change}}">
               <option value="">undefined</option>
-              <template repeat="{{ s in scales }}">
-                <option value="{{ s }}">{{ s }}</option>
+              <template is="dom-repeat" items="{{scales}}" as="s">
+                <option value="{{s}}">{{s}}</option>
               </template>
             </select>
           </td>
           <td>
-            <template if="{{ scaleOptions[axis.scale] }}">
-              {{ scaleOptions[axis.scale] }}
+            <template is="dom-if" if="scaleOptions[scale]">
+              {{scaleOptions[scale]}}
             </template>
           </td>
         </tr>
-      </template>
-      <tr>
-        <th>Series</th>
-        <th>Axis</th>
-        <th>Label</th>
-        <th>Interpolation</th>
-        <th>X</th>
-        <th>Y</th>
-      </tr>
-      <template repeat="{{ series, i in metadata }}">
-        <tr>
-          <td>#{{ i }}</td>
-          <td><input type="text" value="{{ series.axis }}"></td>
-          <td><input type="text" value="{{ series.label }}"></td>
-          <td>
-            <select value="{{ series.interpolation }}">
-              <option value="">undefined</option>
-              <template repeat="{{ inter in interpolations }}">
-                <option value="{{ inter }}">{{inter}}</option>
+        <template is="dom-repeat" items="{{axes}}" as="axis" index-as="key">
+          <tr>
+            <td>{{ {"x axis": key == 0, "y0 axis": key == 1, "y1 axis": key ==2} | tokenList }}</td>
+            <td><input type="text" value="{{axis.name}}"></td>
+            <td><input type="text" value="{{axis.label}}"></td>
+            <td>
+              <select value="{{axis.interpolation::change}}" disabled?="{{!key}}">
+                <option value="">undefined</option>
+                <template is="dom-repeat" items="{{interpolations}}" as="i">
+                  <option value="{{i}}">{{i}}</option>
+                </template>
+              </select>
+            </td>
+            <td>
+              <select value="{{axis.scale::change}}">
+                <option value="">undefined</option>
+                <template is="dom-repeat" items="{{scales}}" as="s">
+                  <option value="{{s}}">{{s}}</option>
+                </template>
+              </select>
+            </td>
+            <td>
+              <template if="scaleOptions[axis.scale]">
+                {{scaleOptions[axis.scale]}}
               </template>
-            </select>
-          </td>
-          <td>
-            <template if="{{ typeof(series.x) == 'function' }}">
-              {{ typeof(series.x) }}
-            </template>
-            <template if="{{ typeof(series.x) == 'string' || typeof(series.x) == 'undefined' }}">
-              <input type="text" value="{{ series.x }}" placeholder="undefined">
-            </template>
-          </td>
-          <td>
-            <template if="{{ typeof(series.y) == 'function' }}">
-              {{ typeof(series.y) }}
-            </template>
-            <template if="{{ typeof(series.y) == 'string' || typeof(series.y) == 'undefined' }}">
-              <input type="text" value="{{ series.y }}" placeholder="undefined">
-            </template>
-          </td>
+            </td>
+          </tr>
+        </template>
+        <tr>
+          <th>Series</th>
+          <th>Axis</th>
+          <th>Label</th>
+          <th>Interpolation</th>
+          <th>X</th>
+          <th>Y</th>
         </tr>
-      </template>
-    </table>
-    <div>
-      <p>
-        Note that this is only part of possibilities of element and it is presented on a specific set of data (if you want to try more feel free to use dev console).
-        Also you don't need to use such complicated configuration, basic one requires only `data` attribute set with records as 2 element arrays (data = [[x1,y1],[x2,y2],...]).
-      </p>
+        <template is="dom-repeat" items="{{metadata}}" as="series" index-as="i">
+          <tr>
+            <td>#{{i}}</td>
+            <td><input type="text" value="{{series.axis}}"></td>
+            <td><input type="text" value="{{series.label}}"></td>
+            <td>
+              <select value="{{series.interpolation::change}}">
+                <option value="">undefined</option>
+                <template is="dom-repeat" items="{{interpolations}}" as="inter">
+                  <option value="{{ inter }}">{{inter}}</option>
+                </template>
+              </select>
+            </td>
+            <td>
+              <template is="dom-if" if="{{typeof(series.x) == 'function'}}">
+                {{ typeof(series.x) }}
+              </template>
+              <template is="dom-if" if="{{typeof(series.x) == 'string' || typeof(series.x) == 'undefined'}}">
+                <input type="text" value="{{ series.x }}" placeholder="undefined">
+              </template>
+            </td>
+            <td>
+              <template is="dom-if" if="{{typeof(series.y) == 'function'}}">
+                {{ typeof(series.y) }}
+              </template>
+              <template is="dom-if" if="{{typeof(series.y) == 'string' || typeof(series.y) == 'undefined'}}">
+                <input type="text" value="{{series.y}}" placeholder="undefined">
+              </template>
+            </td>
+          </tr>
+        </template>
+      </table>
+      <div>
+        <p>
+          Note that this is only part of possibilities of element and it is presented on a specific set of data (if you want to try more feel free to use dev console).
+          Also you don't need to use such complicated configuration, basic one requires only `data` attribute set with records as 2 element arrays (data = [[x1,y1],[x2,y2],...]).
+        </p>
+      </div>
     </div>
-  </div>
-</template>
+  </template>
 
   <script>
-    window.addEventListener('polymer-ready', function(e) {
+    window.addEventListener('WebComponentsReady', function(e) {
       window.demo = document.querySelector('#app');
       demo.responsive = true;
       demo.interpolations = [
@@ -227,7 +216,7 @@
         document.querySelector('#chartDemo').prepare();
       };
       demo.setRange = function(){
-        demo.domain = [1, 10];
+        demo.domain = {start:1, end:10};
       };
       demo.unsetRange = function(){
         demo.domain = null;
@@ -709,6 +698,5 @@
       ];
     });
   </script>
-</body>
-
+  </body>
 </html>
