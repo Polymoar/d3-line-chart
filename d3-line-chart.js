@@ -1,18 +1,5 @@
 (function(d3, undefined){
     //helpers
-    function applyTicks(_axis, ticks){ //helper for applying ticks to axis or grid
-        if(typeof(ticks) ===  'number'){
-            _axis.ticks(ticks);
-        }else if(typeof(ticks) === 'object'){
-            var option;
-            for(option in ticks){
-                if(ticks.hasOwnProperty(option) && typeof(_axis[option]) === 'function'){
-                    _axis[option](ticks[option]);
-                }
-            }
-        }
-    }
-
     function translateDomain(obj){
         if(typeof(obj.start) !== 'undefined' && typeof(obj.end) !== 'undefined'){
             return [obj.start, obj.end];
@@ -39,12 +26,12 @@
              * [{
            *    name: String (required)
            *    label: String
-           *    scale: String or Object - scale of axis, defaults to scale attribute value
+           *    scale: String - scale of axis, defaults to scale attribute value
+           *      String - type of scale
+           *      Object - scale configuration (properties values will be applied to scale methods with corresponding names)
            *    domain: Object {start, end} - domain of axis (if not specified covers all data)
            *    interpolation: String - mode of line interpolation for axis, defaults to interpolation attribute value
-           *    ticks: Number or Object
-           *      Number - approximate number of ticks to display
-           *      Object - ticks configuration, each property will be argument of call to axis method with the same name
+           *    config: Object - axis configuration (properties values will be applied to axis methods with corresponding names)
            * }, ...]
              * ```
              * See D3.js documentation for [available axis methods](https://github.com/mbostock/d3/wiki/SVG-Axes#ticks)
@@ -360,7 +347,7 @@
             }
 
             //define scale for x axis and y axes and apply configuration
-            var _scale, scale, scaleType;
+            var _scale, scale, scaleType, option;
             me.axes.forEach(function(axis, i){
                 if(axis.scale){
                     scale = (typeof(axis.scale) === 'string') ? { type: axis.scale } : axis.scale;
@@ -370,10 +357,9 @@
                 scaleType = (scale) ? scale.type : 'linear';
                 scaleType = (scaleType === 'time' || typeof(d3.scale[scaleType]) === 'function') ? scaleType : 'linear';
                 _scale = axis._scale = ((scaleType === 'time') ? d3.time.scale() : d3.scale[scaleType]()).range((i > 0) ? [height, 0] : [0, width]);
-                var option;
-                for(option in scale){
-                    if(option !== 'type' && scale.hasOwnProperty(option) && typeof(_scale[option]) === 'function'){
-                        _scale[option](scale[option]);
+                for(option in axis.scale){
+                    if(option !== 'type' && scale.hasOwnProperty(option) && typeof(axis._scale[option]) === 'function'){
+                        axis._scale[option](axis.scale[option]);
                     }
                 }
             });
@@ -406,17 +392,21 @@
                 });
             }
 
-            //settle axes orientation and ticks
-            var axisOrientation, orientations = ['bottom', 'left', 'right'];
+            //configure axes
+            var axisOrientation, config, orientations = ['bottom', 'left', 'right'];
             me.axes.forEach(function(axis, key){
                 axisOrientation = orientations[key];
                 axis._axis = d3.svg.axis().scale(axis._scale).orient(axisOrientation);
-                applyTicks(axis._axis, axis.ticks);
                 if(axis.grid || (axis.grid === undefined && me.grid)){
                     axis._grid = d3.svg.axis().scale(axis._scale).orient(axisOrientation).tickFormat('');
-                    applyTicks(axis._grid, axis.ticks);
                 }else{
                     axis._grid = undefined;
+                }
+                config = axis.config;
+                for(option in config){
+                    if(option !== 'type' && config.hasOwnProperty(option) && typeof(axis._axis[option]) === 'function'){
+                        axis._axis[option](config[option]);
+                    }
                 }
             });
 
@@ -517,7 +507,7 @@
                     focus.select('.line.l' + i).datum(me.data).transition().attr('d', line);
                 });
 
-                //update display properties ticks for axes and grid
+                //update display properties for axes and grid
                 svg.selectAll('.axis path, .axis line').attr('fill', 'none').attr('stroke', '#818181').attr('stroke-width', '1px').attr('shape-rendering', 'crispEdges');
                 svg.selectAll('.grid .tick').attr('stroke', 'lightgrey').attr('stroke-width', '1px').attr('shape-rendering', 'crispEdges');
                 svg.selectAll('.grid path').attr('visibility', 'hidden');
