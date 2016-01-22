@@ -30,6 +30,8 @@
 
         is: 'd3-line-chart',
 
+        behaviors: [Polymer.IronResizableBehavior],
+
         properties: {
             /**
              * Array containing axes configuration. Each axis configuration is an object as described below:
@@ -267,6 +269,11 @@
                 value: false,
                 reflectToAttribute: true
             }
+        },
+
+        //watchers
+        listeners: {
+            'iron-resize': '_sizeChanged'
         },
 
         //lifecycle
@@ -552,6 +559,12 @@
 
         //proxy for prepare
         _refresh: function(){
+            this.prepare();
+        },
+
+        //proxy for size change triggered prepare
+        _sizeChanged: function(){
+            this.sizeChanged = true;
             this.prepare();
         },
 
