@@ -445,13 +445,13 @@
 
             //append labels to svg
             if (xAxis.label) {
-                labels.append('text').attr('y', margin.top + height + margin.bottom).attr('x', margin.left + width / 2).attr('dy', '-1em').style('text-anchor', 'middle').text(xAxis.label);
+                labels.append('text').attr('y', margin.top + height + margin.bottom).attr('x', margin.left + width / 2).attr('dy', '-1.2em').style('text-anchor', 'middle').text(xAxis.label);
             }
             if (yAxis.label) {
-                labels.append('text').attr('transform', 'rotate(90)').attr('y', 0).attr('x', margin.top + height / 2).attr('dy', '-1em').style('text-anchor', 'middle').text(yAxis.label);
+                labels.append('text').attr('transform', 'rotate(90)').attr('y', 0).attr('x', margin.top + height / 2).attr('dy', '-1.2em').style('text-anchor', 'middle').text(yAxis.label);
             }
             if (y1Axis && y1Axis.label) {
-                labels.append('text').attr('transform', 'rotate(-90)').attr('y', width + margin.right + margin.left).attr('x', margin.top - height / 2).attr('dy', '-1em').style('text-anchor', 'middle').text(y1Axis.label);
+                labels.append('text').attr('transform', 'rotate(-90)').attr('y', width + margin.right + margin.left).attr('x', margin.top - height / 2).attr('dy', '-1.2em').style('text-anchor', 'middle').text(y1Axis.label);
             }
 
             //append lines to svg
